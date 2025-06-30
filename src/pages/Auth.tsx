@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, User, Shield } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -152,167 +152,114 @@ const Auth = () => {
 
   if (!loginType) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <header className="bg-white shadow-sm border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center space-x-4">
-              <Link to="/" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
-                <ArrowLeft className="h-5 w-5" />
-                <span>Back to Home</span>
-              </Link>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-white" />
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">PropoSync</h1>
-              </div>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm">
+            <div className="text-center mb-12">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Student Login</h1>
             </div>
-          </div>
-        </header>
-
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-md mx-auto space-y-6">
-            <Card className="shadow-xl border-0">
-              <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg text-center">
-                <CardTitle className="text-2xl">Choose Login Type</CardTitle>
-                <p className="text-blue-100">Select your role to continue</p>
-              </CardHeader>
+            
+            <form onSubmit={handleStudentLogin} className="space-y-6">
+              <div>
+                <Input
+                  name="rollNumber"
+                  value={formData.rollNumber}
+                  onChange={handleInputChange}
+                  placeholder="Roll Number"
+                  className="h-14 text-base rounded-2xl border-gray-200 bg-gray-100 px-4"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
               
-              <CardContent className="p-8 space-y-4">
-                <Button
-                  onClick={() => setLoginType('student')}
-                  className="w-full py-6 text-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                >
-                  <User className="h-6 w-6 mr-3" />
-                  Student Login
-                </Button>
-                
-                <Button
-                  onClick={() => setLoginType('admin')}
-                  className="w-full py-6 text-lg bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-                >
-                  <Shield className="h-6 w-6 mr-3" />
-                  Admin Login
-                </Button>
-              </CardContent>
-            </Card>
+              <Button
+                type="submit"
+                className="w-full h-14 bg-blue-500 hover:bg-blue-600 rounded-2xl text-white font-medium text-base"
+                disabled={isLoading}
+              >
+                {isLoading ? "Loading..." : "Submit"}
+              </Button>
+            </form>
+
+            <div className="text-center mt-8">
+              <button
+                onClick={() => setLoginType('admin')}
+                className="text-gray-600 text-base underline"
+              >
+                Admin Login
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setLoginType(null)}
-              className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span>Back</span>
-            </button>
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <FileText className="h-5 w-5 text-white" />
+  if (loginType === 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="flex items-center p-4 border-b bg-white">
+          <button
+            onClick={() => setLoginType(null)}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-6 w-6 text-gray-700" />
+          </button>
+          <h1 className="text-xl font-semibold text-gray-900">Admin Login</h1>
+        </div>
+
+        <div className="flex-1 flex items-start justify-center p-4 pt-8">
+          <div className="w-full max-w-sm">
+            <form onSubmit={handleAdminLogin} className="space-y-6">
+              <div>
+                <Label htmlFor="adminEmail" className="text-base font-medium text-gray-900 mb-2 block">
+                  Email
+                </Label>
+                <Input
+                  id="adminEmail"
+                  name="adminEmail"
+                  type="email"
+                  value={formData.adminEmail}
+                  onChange={handleInputChange}
+                  placeholder="Enter your email"
+                  className="h-14 text-base rounded-xl border-gray-200 bg-gray-100"
+                  required
+                  disabled={isLoading}
+                />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">PropoSync</h1>
-            </div>
+              
+              <div>
+                <Label htmlFor="adminPassword" className="text-base font-medium text-gray-900 mb-2 block">
+                  Password
+                </Label>
+                <Input
+                  id="adminPassword"
+                  name="adminPassword"
+                  type="password"
+                  value={formData.adminPassword}
+                  onChange={handleInputChange}
+                  placeholder="Enter your password"
+                  className="h-14 text-base rounded-xl border-gray-200 bg-gray-100"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <Button
+                type="submit"
+                className="w-full h-14 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium text-base"
+                disabled={isLoading}
+              >
+                {isLoading ? "Logging in..." : "Login"}
+              </Button>
+            </form>
           </div>
         </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
-          <Card className="shadow-xl border-0">
-            <CardHeader className={`text-white rounded-t-lg ${
-              loginType === 'student' 
-                ? 'bg-gradient-to-r from-green-500 to-green-600'
-                : 'bg-gradient-to-r from-purple-500 to-purple-600'
-            }`}>
-              <CardTitle className="text-2xl flex items-center space-x-2">
-                {loginType === 'student' ? <User className="h-6 w-6" /> : <Shield className="h-6 w-6" />}
-                <span>{loginType === 'student' ? 'Student Login' : 'Admin Login'}</span>
-              </CardTitle>
-              <p className="text-sm opacity-90">
-                {loginType === 'student' 
-                  ? 'Enter your roll number (D234101 - D234160)'
-                  : 'Enter admin credentials'
-                }
-              </p>
-            </CardHeader>
-            
-            <CardContent className="p-8">
-              {loginType === 'student' ? (
-                <form onSubmit={handleStudentLogin} className="space-y-4">
-                  <div>
-                    <Label htmlFor="rollNumber">Roll Number</Label>
-                    <Input
-                      id="rollNumber"
-                      name="rollNumber"
-                      value={formData.rollNumber}
-                      onChange={handleInputChange}
-                      placeholder="e.g., D234101"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  
-                  <Button
-                    type="submit"
-                    className="w-full py-3 text-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Logging in..." : "Login"}
-                  </Button>
-                </form>
-              ) : (
-                <form onSubmit={handleAdminLogin} className="space-y-4">
-                  <div>
-                    <Label htmlFor="adminEmail">Email</Label>
-                    <Input
-                      id="adminEmail"
-                      name="adminEmail"
-                      type="email"
-                      value={formData.adminEmail}
-                      onChange={handleInputChange}
-                      placeholder="husna.kazi@theemcoe.org"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="adminPassword">Password</Label>
-                    <Input
-                      id="adminPassword"
-                      name="adminPassword"
-                      type="password"
-                      value={formData.adminPassword}
-                      onChange={handleInputChange}
-                      placeholder="Enter password"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  
-                  <Button
-                    type="submit"
-                    className="w-full py-3 text-lg bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Logging in..." : "Login"}
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 };
 
 export default Auth;

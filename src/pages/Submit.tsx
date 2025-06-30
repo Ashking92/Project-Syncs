@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Users, DollarSign, Code } from "lucide-react";
+import { ArrowLeft, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +18,7 @@ const Submit = () => {
   
   const [formData, setFormData] = useState({
     projectTitle: "",
+    projectDescription: "",
     teamMembersCount: "",
     teamMembers: "",
     softwareRequirements: "",
@@ -90,8 +90,8 @@ const Submit = () => {
           roll_number: user.rollNumber,
           student_name: profile.name,
           project_title: formData.projectTitle,
-          team_members_count: parseInt(formData.teamMembersCount),
-          team_members: formData.teamMembers,
+          team_members_count: parseInt(formData.teamMembersCount) || 1,
+          team_members: formData.teamMembers || profile.name,
           software_requirements: formData.softwareRequirements,
           hardware_requirements: formData.hardwareRequirements,
           estimated_cost: formData.estimatedCost,
@@ -109,6 +109,7 @@ const Submit = () => {
       // Reset form
       setFormData({
         projectTitle: "",
+        projectDescription: "",
         teamMembersCount: "",
         teamMembers: "",
         softwareRequirements: "",
@@ -132,9 +133,9 @@ const Submit = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
           <p className="text-gray-600 mt-4">Loading...</p>
         </div>
       </div>
@@ -142,169 +143,95 @@ const Submit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <Link to="/student-dashboard" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-              <span>Back to Dashboard</span>
-            </Link>
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">PropoSync</h1>
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex items-center p-4 border-b bg-white">
+        <button
+          onClick={() => navigate('/student-dashboard')}
+          className="mr-4"
+        >
+          <ArrowLeft className="h-6 w-6 text-gray-700" />
+        </button>
+        <h1 className="text-xl font-semibold text-gray-900">Submit Project</h1>
+      </div>
+
+      <div className="p-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <Label htmlFor="projectTitle" className="text-base font-medium text-gray-900 mb-2 block">
+              Project Title
+            </Label>
+            <Input
+              id="projectTitle"
+              name="projectTitle"
+              value={formData.projectTitle}
+              onChange={handleInputChange}
+              placeholder="Enter project title"
+              className="h-12 text-base rounded-xl border-gray-200 bg-white"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="projectDescription" className="text-base font-medium text-gray-900 mb-2 block">
+              Project Description
+            </Label>
+            <Textarea
+              id="projectDescription"
+              name="projectDescription"
+              value={formData.projectDescription}
+              onChange={handleInputChange}
+              placeholder="Enter project description"
+              className="min-h-32 text-base rounded-xl border-gray-200 bg-white resize-none"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="technologies" className="text-base font-medium text-gray-900 mb-2 block">
+              Technologies Used
+            </Label>
+            <Input
+              id="technologies"
+              name="technologies"
+              value={formData.technologies}
+              onChange={handleInputChange}
+              placeholder="e.g., React, Node.js, MongoDB"
+              className="h-12 text-base rounded-xl border-gray-200 bg-white"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="estimatedCost" className="text-base font-medium text-gray-900 mb-2 block">
+              Estimated Cost (₹)
+            </Label>
+            <Input
+              id="estimatedCost"
+              name="estimatedCost"
+              type="number"
+              value={formData.estimatedCost}
+              onChange={handleInputChange}
+              placeholder="Enter estimated cost"
+              className="h-12 text-base rounded-xl border-gray-200 bg-white"
+              required
+            />
+          </div>
+
+          <div className="bg-white rounded-xl p-4 border-2 border-dashed border-gray-200">
+            <div className="text-center">
+              <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">Upload file</p>
             </div>
           </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-4xl mx-auto shadow-xl border-0">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
-            <CardTitle className="text-2xl flex items-center space-x-2">
-              <FileText className="h-6 w-6" />
-              <span>Submit Project Proposal</span>
-            </CardTitle>
-            <p className="text-blue-100">Student: {profile?.name} ({user?.rollNumber})</p>
-          </CardHeader>
           
-          <CardContent className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Project Info */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                  <FileText className="h-5 w-5 text-blue-600" />
-                  <span>Project Information</span>
-                </h3>
-                
-                <div>
-                  <Label htmlFor="projectTitle">Project Title *</Label>
-                  <Input
-                    id="projectTitle"
-                    name="projectTitle"
-                    value={formData.projectTitle}
-                    onChange={handleInputChange}
-                    placeholder="Enter your project title"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="technologies">Technologies Used *</Label>
-                  <Input
-                    id="technologies"
-                    name="technologies"
-                    value={formData.technologies}
-                    onChange={handleInputChange}
-                    placeholder="e.g., React, Node.js, MongoDB, Python"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Team Details */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                  <Users className="h-5 w-5 text-green-600" />
-                  <span>Team Details</span>
-                </h3>
-                
-                <div>
-                  <Label htmlFor="teamMembersCount">Number of Team Members *</Label>
-                  <Input
-                    id="teamMembersCount"
-                    name="teamMembersCount"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={formData.teamMembersCount}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 4"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="teamMembers">Team Members' Names *</Label>
-                  <Textarea
-                    id="teamMembers"
-                    name="teamMembers"
-                    value={formData.teamMembers}
-                    onChange={handleInputChange}
-                    placeholder="Enter all team member names (one per line)"
-                    rows={4}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Technical Requirements */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                  <Code className="h-5 w-5 text-purple-600" />
-                  <span>Technical Requirements</span>
-                </h3>
-                
-                <div>
-                  <Label htmlFor="softwareRequirements">Software Requirements</Label>
-                  <Textarea
-                    id="softwareRequirements"
-                    name="softwareRequirements"
-                    value={formData.softwareRequirements}
-                    onChange={handleInputChange}
-                    placeholder="List all software requirements"
-                    rows={3}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="hardwareRequirements">Hardware Requirements</Label>
-                  <Textarea
-                    id="hardwareRequirements"
-                    name="hardwareRequirements"
-                    value={formData.hardwareRequirements}
-                    onChange={handleInputChange}
-                    placeholder="List all hardware requirements"
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              {/* Cost Estimation */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                  <DollarSign className="h-5 w-5 text-orange-600" />
-                  <span>Cost Estimation</span>
-                </h3>
-                
-                <div>
-                  <Label htmlFor="estimatedCost">Estimated Cost (₹) *</Label>
-                  <Input
-                    id="estimatedCost"
-                    name="estimatedCost"
-                    type="number"
-                    min="0"
-                    value={formData.estimatedCost}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 5000"
-                    required
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full py-3 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : "Submit Project Proposal"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+          <Button
+            type="submit"
+            className="w-full h-12 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium text-base"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Submitting..." : "Submit"}
+          </Button>
+        </form>
       </div>
     </div>
   );

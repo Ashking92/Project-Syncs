@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, User, Upload, Edit, LogOut } from "lucide-react";
+import { ArrowLeft, User, Edit, Home, Folder, Settings, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ const StudentDashboard = () => {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('home');
   
   const [formData, setFormData] = useState({
     name: "",
@@ -75,6 +76,7 @@ const StudentDashboard = () => {
       // If profile is incomplete, enable editing mode
       if (!data.name || !data.phone_number || !data.email) {
         setIsEditing(true);
+        setActiveTab('profile');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -113,6 +115,7 @@ const StudentDashboard = () => {
 
       setIsEditing(false);
       loadProfile(user.rollNumber);
+      setActiveTab('home');
     } catch (error: any) {
       toast({
         title: "Error",
@@ -131,181 +134,208 @@ const StudentDashboard = () => {
 
   if (isLoading && !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
           <p className="text-gray-600 mt-4">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link to="/" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
-                <ArrowLeft className="h-5 w-5" />
-                <span>Home</span>
-              </Link>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                  <User className="h-5 w-5 text-white" />
+  const renderProfileTab = () => (
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex items-center p-4 border-b bg-white">
+        <button
+          onClick={() => setActiveTab('home')}
+          className="mr-4"
+        >
+          <ArrowLeft className="h-6 w-6 text-gray-700" />
+        </button>
+        <h1 className="text-xl font-semibold text-gray-900">Profile</h1>
+      </div>
+
+      <div className="p-4">
+        <div className="text-center mb-8">
+          <div className="w-24 h-24 bg-gradient-to-br from-orange-200 to-orange-300 rounded-full mx-auto mb-4 flex items-center justify-center">
+            {profile?.photo_url ? (
+              <img 
+                src={profile.photo_url} 
+                alt="Profile" 
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              <User className="h-12 w-12 text-gray-600" />
+            )}
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">{profile?.name || 'Student'}</h2>
+          <p className="text-gray-600">Student ID: {user?.rollNumber}</p>
+        </div>
+
+        {isEditing ? (
+          <form onSubmit={handleSaveProfile} className="space-y-6">
+            <div>
+              <Label htmlFor="name" className="text-base font-medium text-gray-900 mb-2 block">
+                Name
+              </Label>
+              <Input
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className="h-12 text-base rounded-xl border-gray-200 bg-gray-100"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="phone_number" className="text-base font-medium text-gray-900 mb-2 block">
+                Phone
+              </Label>
+              <Input
+                id="phone_number"
+                name="phone_number"
+                value={formData.phone_number}
+                onChange={handleInputChange}
+                className="h-12 text-base rounded-xl border-gray-200 bg-gray-100"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="email" className="text-base font-medium text-gray-900 mb-2 block">
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="h-12 text-base rounded-xl border-gray-200 bg-gray-100"
+                required
+              />
+            </div>
+            
+            <Button
+              type="submit"
+              className="w-full h-12 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium text-base"
+              disabled={isLoading}
+            >
+              {isLoading ? "Saving..." : "Save"}
+            </Button>
+          </form>
+        ) : (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl p-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Information</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Name</span>
+                  <span className="font-medium">{profile?.name || 'Not provided'}</span>
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">Student Dashboard</h1>
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Email</span>
+                  <span className="font-medium">{profile?.email || 'Not provided'}</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-gray-600">Major</span>
+                  <span className="font-medium">Computer Science</span>
+                </div>
               </div>
             </div>
-            <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
+            
+            <Button
+              onClick={() => setIsEditing(true)}
+              className="w-full h-12 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium text-base"
+            >
+              Edit Profile
             </Button>
           </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderHomeTab = () => (
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex items-center justify-between p-4 border-b bg-white">
+        <div className="flex items-center">
+          <Menu className="h-6 w-6 text-gray-700 mr-3" />
+          <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
         </div>
-      </header>
+        <button onClick={handleLogout}>
+          <LogOut className="h-6 w-6 text-gray-700" />
+        </button>
+      </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Welcome Card */}
-          <Card className="shadow-xl border-0">
-            <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-              <CardTitle className="text-2xl">Welcome, {profile?.name || user?.rollNumber}!</CardTitle>
-              <p className="text-green-100">Roll Number: {user?.rollNumber}</p>
-            </CardHeader>
-          </Card>
+      <div className="p-4">
+        <div className="text-center mb-8">
+          <div className="w-24 h-24 bg-gradient-to-br from-blue-200 to-blue-300 rounded-full mx-auto mb-4 flex items-center justify-center">
+            {profile?.photo_url ? (
+              <img 
+                src={profile.photo_url} 
+                alt="Profile" 
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              <User className="h-12 w-12 text-gray-600" />
+            )}
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">{profile?.name || 'Student'}</h2>
+          <p className="text-gray-600">Student ID: {user?.rollNumber}</p>
+        </div>
 
-          {/* Profile Information */}
-          <Card className="shadow-xl border-0">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Profile Information</span>
-              </CardTitle>
-              {!isEditing && (
-                <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
-              )}
-            </CardHeader>
-            
-            <CardContent className="p-6">
-              {isEditing ? (
-                <form onSubmit={handleSaveProfile} className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Full Name *</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        placeholder="Enter your full name"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="phone_number">Phone Number *</Label>
-                      <Input
-                        id="phone_number"
-                        name="phone_number"
-                        value={formData.phone_number}
-                        onChange={handleInputChange}
-                        placeholder="Enter phone number"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="Enter email address"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="photo_url">Photo URL (Optional)</Label>
-                    <Input
-                      id="photo_url"
-                      name="photo_url"
-                      value={formData.photo_url}
-                      onChange={handleInputChange}
-                      placeholder="Enter photo URL"
-                    />
-                  </div>
-                  
-                  <div className="flex space-x-3">
-                    <Button
-                      type="submit"
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Saving..." : "Save Profile"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsEditing(false)}
-                      disabled={isLoading}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <strong>Name:</strong> {profile?.name || 'Not provided'}
-                    </div>
-                    <div>
-                      <strong>Phone:</strong> {profile?.phone_number || 'Not provided'}
-                    </div>
-                  </div>
-                  <div>
-                    <strong>Email:</strong> {profile?.email || 'Not provided'}
-                  </div>
-                  {profile?.photo_url && (
-                    <div>
-                      <strong>Photo:</strong>
-                      <img 
-                        src={profile.photo_url} 
-                        alt="Profile" 
-                        className="mt-2 w-20 h-20 rounded-full object-cover"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {profile?.name && profile?.phone_number && profile?.email && (
+          <Button
+            onClick={() => navigate('/submit')}
+            className="w-full h-12 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium text-base mb-6"
+          >
+            Submit Project
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 
-          {/* Actions */}
-          {profile?.name && profile?.phone_number && profile?.email && (
-            <Card className="shadow-xl border-0">
-              <CardHeader>
-                <CardTitle>Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <Button
-                  onClick={() => navigate('/submit')}
-                  className="w-full py-6 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                >
-                  <Upload className="h-6 w-6 mr-3" />
-                  Submit New Project
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+  if (activeTab === 'profile') {
+    return renderProfileTab();
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {renderHomeTab()}
+      
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+        <div className="flex justify-around py-2">
+          <button
+            onClick={() => setActiveTab('home')}
+            className={`flex flex-col items-center py-2 px-4 ${
+              activeTab === 'home' ? 'text-blue-500' : 'text-gray-500'
+            }`}
+          >
+            <Home className="h-6 w-6" />
+            <span className="text-xs mt-1">Home</span>
+          </button>
+          
+          <button
+            onClick={() => navigate('/submit')}
+            className="flex flex-col items-center py-2 px-4 text-gray-500"
+          >
+            <Folder className="h-6 w-6" />
+            <span className="text-xs mt-1">Projects</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`flex flex-col items-center py-2 px-4 ${
+              activeTab === 'profile' ? 'text-blue-500' : 'text-gray-500'
+            }`}
+          >
+            <Settings className="h-6 w-6" />
+            <span className="text-xs mt-1">Settings</span>
+          </button>
         </div>
       </div>
     </div>
