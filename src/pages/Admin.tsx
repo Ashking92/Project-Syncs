@@ -14,6 +14,7 @@ interface Submission {
   roll_number: string;
   student_name: string;
   project_title: string;
+  project_description?: string;
   team_members_count: number;
   team_members: string;
   software_requirements: string;
@@ -163,9 +164,11 @@ const Admin = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-white">
-        <h1 className="text-xl font-semibold text-gray-900">Submissions</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Submissions ({submissions.length})</h1>
         <div className="flex items-center space-x-4">
-          <Plus className="h-6 w-6 text-gray-700" />
+          <div className="text-sm text-gray-600">
+            Real-time Updates Active
+          </div>
           <button onClick={handleLogout}>
             <LogOut className="h-6 w-6 text-gray-700" />
           </button>
@@ -186,7 +189,7 @@ const Admin = () => {
 
         {/* Filter Tabs */}
         <div className="flex space-x-2 mb-6">
-          {['All', 'Pending', 'Approved'].map((filterOption) => (
+          {['All', 'Pending', 'Approved', 'Rejected'].map((filterOption) => (
             <button
               key={filterOption}
               onClick={() => setFilter(filterOption)}
@@ -196,7 +199,7 @@ const Admin = () => {
                   : 'bg-gray-200 text-gray-700'
               }`}
             >
-              {filterOption}
+              {filterOption} ({filterOption === 'All' ? submissions.length : submissions.filter(s => s.status.toLowerCase() === filterOption.toLowerCase()).length})
             </button>
           ))}
         </div>
@@ -215,8 +218,11 @@ const Admin = () => {
                     <h3 className="font-semibold text-gray-900 mb-1">
                       {submission.project_title}
                     </h3>
-                    <p className="text-gray-600 text-sm">
-                      Submitted by {submission.student_name}
+                    <p className="text-gray-600 text-sm mb-1">
+                      {submission.student_name} ({submission.roll_number})
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      Team: {submission.team_members_count} members | Cost: ₹{submission.estimated_cost}
                     </p>
                   </div>
                   <Dialog>
@@ -243,16 +249,52 @@ const Admin = () => {
                             <div>
                               <strong>Student Name:</strong> {selectedSubmission.student_name}
                             </div>
+                            <div>
+                              <strong>Team Members:</strong> {selectedSubmission.team_members_count}
+                            </div>
+                            <div>
+                              <strong>Estimated Cost:</strong> ₹{selectedSubmission.estimated_cost}
+                            </div>
                           </div>
+                          
                           <div>
                             <strong>Project Title:</strong> {selectedSubmission.project_title}
                           </div>
+                          
+                          {selectedSubmission.project_description && (
+                            <div>
+                              <strong>Description:</strong>
+                              <p className="mt-1 text-gray-700">{selectedSubmission.project_description}</p>
+                            </div>
+                          )}
+                          
                           <div>
                             <strong>Technologies:</strong> {selectedSubmission.technologies}
                           </div>
+                          
                           <div>
-                            <strong>Estimated Cost:</strong> ₹{selectedSubmission.estimated_cost}
+                            <strong>Team Members:</strong>
+                            <p className="mt-1 text-gray-700">{selectedSubmission.team_members}</p>
                           </div>
+                          
+                          {selectedSubmission.software_requirements && (
+                            <div>
+                              <strong>Software Requirements:</strong>
+                              <p className="mt-1 text-gray-700">{selectedSubmission.software_requirements}</p>
+                            </div>
+                          )}
+                          
+                          {selectedSubmission.hardware_requirements && (
+                            <div>
+                              <strong>Hardware Requirements:</strong>
+                              <p className="mt-1 text-gray-700">{selectedSubmission.hardware_requirements}</p>
+                            </div>
+                          )}
+                          
+                          <div>
+                            <strong>Submitted:</strong> {new Date(selectedSubmission.submitted_at).toLocaleString()}
+                          </div>
+                          
                           <div className="flex space-x-2 pt-4">
                             <Button
                               onClick={() => updateSubmissionStatus(selectedSubmission.id, 'approved')}

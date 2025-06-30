@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Edit, Home, Folder, Settings, LogOut, Menu } from "lucide-react";
+import { ArrowLeft, User, Edit, Home, Folder, Settings, LogOut, Menu, Bell, CheckCircle, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,14 +19,26 @@ interface StudentProfile {
   photo_url?: string;
 }
 
+interface Submission {
+  id: string;
+  project_title: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submitted_at: string;
+  remarks?: string;
+  technologies: string;
+  estimated_cost: string;
+}
+
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
+  const [hasNewNotification, setHasNewNotification] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -37,6 +50,44 @@ const StudentDashboard = () => {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (profile) {
+      loadSubmissions();
+      
+      // Set up real-time subscription for submissions
+      const channel = supabase
+        .channel('user-submissions')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'submissions',
+          filter: `roll_number=eq.${user?.rollNumber}`
+        }, (payload) => {
+          console.log('Real-time update:', payload);
+          loadSubmissions();
+          
+          if (payload.eventType === 'UPDATE') {
+            const newStatus = payload.new.status;
+            const oldStatus = payload.old?.status;
+            
+            if (newStatus !== oldStatus && (newStatus === 'approved' || newStatus === 'rejected')) {
+              setHasNewNotification(true);
+              toast({
+                title: `Project ${newStatus === 'approved' ? 'Approved! 🎉' : 'Update'}`,
+                description: `Your project "${payload.new.project_title}" has been ${newStatus}.`,
+                variant: newStatus === 'approved' ? 'default' : 'destructive',
+              });
+            }
+          }
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [profile, user]);
 
   const checkAuth = () => {
     const userData = localStorage.getItem('proposync-user');
@@ -85,6 +136,29 @@ const StudentDashboard = () => {
     }
   };
 
+  const loadSubmissions = async () => {
+    if (!user?.rollNumber) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('roll_number', user.rollNumber)
+        .order('submitted_at', { ascending: false });
+
+      if (error) throw error;
+
+      const typedData = (data || []).map(item => ({
+        ...item,
+        status: item.status as 'pending' | 'approved' | 'rejected'
+      }));
+      
+      setSubmissions(typedData);
+    } catch (error) {
+      console.error('Error loading submissions:', error);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -130,6 +204,28 @@ const StudentDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('proposync-user');
     navigate('/auth');
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'rejected':
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      default:
+        return <Clock className="h-5 w-5 text-yellow-600" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+      default:
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+    }
   };
 
   if (isLoading && !profile) {
@@ -239,8 +335,8 @@ const StudentDashboard = () => {
                   <span className="font-medium">{profile?.email || 'Not provided'}</span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="text-gray-600">Major</span>
-                  <span className="font-medium">Computer Science</span>
+                  <span className="text-gray-600">Phone</span>
+                  <span className="font-medium">{profile?.phone_number || 'Not provided'}</span>
                 </div>
               </div>
             </div>
@@ -257,6 +353,82 @@ const StudentDashboard = () => {
     </div>
   );
 
+  const renderProjectsTab = () => (
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex items-center justify-between p-4 border-b bg-white">
+        <div className="flex items-center">
+          <button
+            onClick={() => setActiveTab('home')}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-6 w-6 text-gray-700" />
+          </button>
+          <h1 className="text-xl font-semibold text-gray-900">My Projects</h1>
+        </div>
+        <div className="relative">
+          <Bell className={`h-6 w-6 ${hasNewNotification ? 'text-red-500' : 'text-gray-700'}`} />
+          {hasNewNotification && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4">
+        {submissions.length === 0 ? (
+          <div className="text-center py-12">
+            <Folder className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 mb-4">No projects submitted yet</p>
+            <Button
+              onClick={() => navigate('/submit')}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              Submit Your First Project
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {submissions.map((submission) => (
+              <Card key={submission.id} className="rounded-xl border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 mb-1">
+                        {submission.project_title}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Technologies: {submission.technologies}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Cost: ₹{submission.estimated_cost}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {getStatusIcon(submission.status)}
+                      {getStatusBadge(submission.status)}
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center text-sm text-gray-500">
+                    <span>
+                      Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  
+                  {submission.remarks && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium text-gray-700 mb-1">Remarks:</p>
+                      <p className="text-sm text-gray-600">{submission.remarks}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const renderHomeTab = () => (
     <div className="min-h-screen bg-gray-50">
       <div className="flex items-center justify-between p-4 border-b bg-white">
@@ -264,9 +436,23 @@ const StudentDashboard = () => {
           <Menu className="h-6 w-6 text-gray-700 mr-3" />
           <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
         </div>
-        <button onClick={handleLogout}>
-          <LogOut className="h-6 w-6 text-gray-700" />
-        </button>
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <Bell 
+              className={`h-6 w-6 cursor-pointer ${hasNewNotification ? 'text-red-500' : 'text-gray-700'}`}
+              onClick={() => {
+                setHasNewNotification(false);
+                setActiveTab('projects');
+              }}
+            />
+            {hasNewNotification && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+            )}
+          </div>
+          <button onClick={handleLogout}>
+            <LogOut className="h-6 w-6 text-gray-700" />
+          </button>
+        </div>
       </div>
 
       <div className="p-4">
@@ -286,12 +472,55 @@ const StudentDashboard = () => {
           <p className="text-gray-600">Student ID: {user?.rollNumber}</p>
         </div>
 
+        <div className="space-y-4 mb-6">
+          <Card className="rounded-xl border-gray-200">
+            <CardContent className="p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Projects Status</h3>
+                  <p className="text-sm text-gray-600">Total: {submissions.length}</p>
+                </div>
+                <div className="flex space-x-4 text-sm">
+                  <div className="text-center">
+                    <div className="font-semibold text-yellow-600">
+                      {submissions.filter(s => s.status === 'pending').length}
+                    </div>
+                    <div className="text-gray-500">Pending</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-green-600">
+                      {submissions.filter(s => s.status === 'approved').length}
+                    </div>
+                    <div className="text-gray-500">Approved</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-red-600">
+                      {submissions.filter(s => s.status === 'rejected').length}
+                    </div>
+                    <div className="text-gray-500">Rejected</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {profile?.name && profile?.phone_number && profile?.email && (
           <Button
             onClick={() => navigate('/submit')}
             className="w-full h-12 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium text-base mb-6"
           >
-            Submit Project
+            Submit New Project
+          </Button>
+        )}
+
+        {submissions.length > 0 && (
+          <Button
+            onClick={() => setActiveTab('projects')}
+            variant="outline"
+            className="w-full h-12 rounded-xl border-gray-200 text-gray-700 font-medium text-base"
+          >
+            View All Projects
           </Button>
         )}
       </div>
@@ -300,6 +529,10 @@ const StudentDashboard = () => {
 
   if (activeTab === 'profile') {
     return renderProfileTab();
+  }
+
+  if (activeTab === 'projects') {
+    return renderProjectsTab();
   }
 
   return (
@@ -320,11 +553,16 @@ const StudentDashboard = () => {
           </button>
           
           <button
-            onClick={() => navigate('/submit')}
-            className="flex flex-col items-center py-2 px-4 text-gray-500"
+            onClick={() => setActiveTab('projects')}
+            className={`flex flex-col items-center py-2 px-4 relative ${
+              activeTab === 'projects' ? 'text-blue-500' : 'text-gray-500'
+            }`}
           >
             <Folder className="h-6 w-6" />
             <span className="text-xs mt-1">Projects</span>
+            {hasNewNotification && (
+              <div className="absolute top-1 right-3 w-2 h-2 bg-red-500 rounded-full"></div>
+            )}
           </button>
           
           <button

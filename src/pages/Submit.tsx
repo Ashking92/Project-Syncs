@@ -90,6 +90,7 @@ const Submit = () => {
           roll_number: user.rollNumber,
           student_name: profile.name,
           project_title: formData.projectTitle,
+          project_description: formData.projectDescription,
           team_members_count: parseInt(formData.teamMembersCount) || 1,
           team_members: formData.teamMembers || profile.name,
           software_requirements: formData.softwareRequirements,
@@ -187,6 +188,39 @@ const Submit = () => {
           </div>
 
           <div>
+            <Label htmlFor="teamMembersCount" className="text-base font-medium text-gray-900 mb-2 block">
+              Team Members Count
+            </Label>
+            <Input
+              id="teamMembersCount"
+              name="teamMembersCount"
+              type="number"
+              value={formData.teamMembersCount}
+              onChange={handleInputChange}
+              placeholder="Enter number of team members"
+              className="h-12 text-base rounded-xl border-gray-200 bg-white"
+              required
+              min="1"
+              max="10"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="teamMembers" className="text-base font-medium text-gray-900 mb-2 block">
+              Team Members Names
+            </Label>
+            <Textarea
+              id="teamMembers"
+              name="teamMembers"
+              value={formData.teamMembers}
+              onChange={handleInputChange}
+              placeholder="Enter all team member names (comma separated)"
+              className="min-h-24 text-base rounded-xl border-gray-200 bg-white resize-none"
+              required
+            />
+          </div>
+
+          <div>
             <Label htmlFor="technologies" className="text-base font-medium text-gray-900 mb-2 block">
               Technologies Used
             </Label>
@@ -198,6 +232,34 @@ const Submit = () => {
               placeholder="e.g., React, Node.js, MongoDB"
               className="h-12 text-base rounded-xl border-gray-200 bg-white"
               required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="softwareRequirements" className="text-base font-medium text-gray-900 mb-2 block">
+              Software Requirements
+            </Label>
+            <Textarea
+              id="softwareRequirements"
+              name="softwareRequirements"
+              value={formData.softwareRequirements}
+              onChange={handleInputChange}
+              placeholder="List required software and tools"
+              className="min-h-24 text-base rounded-xl border-gray-200 bg-white resize-none"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="hardwareRequirements" className="text-base font-medium text-gray-900 mb-2 block">
+              Hardware Requirements
+            </Label>
+            <Textarea
+              id="hardwareRequirements"
+              name="hardwareRequirements"
+              value={formData.hardwareRequirements}
+              onChange={handleInputChange}
+              placeholder="List required hardware specifications"
+              className="min-h-24 text-base rounded-xl border-gray-200 bg-white resize-none"
             />
           </div>
 
@@ -220,7 +282,7 @@ const Submit = () => {
           <div className="bg-white rounded-xl p-4 border-2 border-dashed border-gray-200">
             <div className="text-center">
               <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">Upload file</p>
+              <p className="text-gray-600">Upload file (Coming Soon)</p>
             </div>
           </div>
           
