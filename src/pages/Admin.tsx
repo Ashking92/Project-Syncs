@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, CheckCircle, XCircle, MessageSquare, Search, FileText, LogOut } from "lucide-react";
@@ -63,7 +62,12 @@ const Admin = () => {
         .order('submitted_at', { ascending: false });
 
       if (error) throw error;
-      setSubmissions(data || []);
+      // Type assertion to ensure status field matches our interface
+      const typedData = (data || []).map(item => ({
+        ...item,
+        status: item.status as 'pending' | 'approved' | 'rejected'
+      }));
+      setSubmissions(typedData);
     } catch (error) {
       console.error('Error loading submissions:', error);
       toast({
@@ -82,7 +86,7 @@ const Admin = () => {
     submission.project_title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const updateSubmissionStatus = async (id: string, status: 'approved' | 'rejected', remarks: string = '') => {
+  const updateSubmissionStatus = async (id: string, status: 'pending' | 'approved' | 'rejected', remarks: string = '') => {
     try {
       const { error } = await supabase
         .from('submissions')
