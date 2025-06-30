@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Submit from "./pages/Submit";
 import Admin from "./pages/Admin";
+import Auth from "./pages/Auth";
+import StudentDashboard from "./pages/StudentDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,6 +21,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/student-dashboard" element={<StudentDashboard />} />
           <Route path="/submit" element={<Submit />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<NotFound />} />

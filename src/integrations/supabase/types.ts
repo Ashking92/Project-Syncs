@@ -9,7 +9,104 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          email: string | null
+          id: string
+          ip_address: string | null
+          name: string | null
+          phone_number: string | null
+          photo_url: string | null
+          roll_number: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          name?: string | null
+          phone_number?: string | null
+          photo_url?: string | null
+          roll_number: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          name?: string | null
+          phone_number?: string | null
+          photo_url?: string | null
+          roll_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          estimated_cost: string
+          hardware_requirements: string | null
+          id: string
+          project_title: string
+          remarks: string | null
+          roll_number: string
+          software_requirements: string | null
+          status: string
+          student_id: string | null
+          student_name: string
+          submitted_at: string
+          team_members: string
+          team_members_count: number
+          technologies: string
+        }
+        Insert: {
+          estimated_cost: string
+          hardware_requirements?: string | null
+          id?: string
+          project_title: string
+          remarks?: string | null
+          roll_number: string
+          software_requirements?: string | null
+          status?: string
+          student_id?: string | null
+          student_name: string
+          submitted_at?: string
+          team_members: string
+          team_members_count: number
+          technologies: string
+        }
+        Update: {
+          estimated_cost?: string
+          hardware_requirements?: string | null
+          id?: string
+          project_title?: string
+          remarks?: string | null
+          roll_number?: string
+          software_requirements?: string | null
+          status?: string
+          student_id?: string | null
+          student_name?: string
+          submitted_at?: string
+          team_members?: string
+          team_members_count?: number
+          technologies?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

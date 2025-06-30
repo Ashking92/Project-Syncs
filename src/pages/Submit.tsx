@@ -1,22 +1,23 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Users, DollarSign, Code, Cpu } from "lucide-react";
+import { ArrowLeft, FileText, Users, DollarSign, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Submit = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   
   const [formData, setFormData] = useState({
-    rollNumber: "",
-    studentName: "",
     projectTitle: "",
     teamMembersCount: "",
     teamMembers: "",
@@ -25,6 +26,52 @@ const Submit = () => {
     estimatedCost: "",
     technologies: ""
   });
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const userData = localStorage.getItem('proposync-user');
+    if (!userData) {
+      navigate('/auth');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    if (parsedUser.type !== 'student') {
+      navigate('/auth');
+      return;
+    }
+
+    setUser(parsedUser);
+    
+    // Load student profile
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('roll_number', parsedUser.rollNumber)
+        .single();
+
+      if (error) throw error;
+      
+      if (!data.name || !data.phone_number || !data.email) {
+        toast({
+          title: "Complete Your Profile",
+          description: "Please complete your profile first from the student dashboard.",
+          variant: "destructive",
+        });
+        navigate('/student-dashboard');
+        return;
+      }
+
+      setProfile(data);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      navigate('/student-dashboard');
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -35,45 +82,64 @@ const Submit = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const { error } = await supabase
+        .from('submissions')
+        .insert({
+          student_id: profile.id,
+          roll_number: user.rollNumber,
+          student_name: profile.name,
+          project_title: formData.projectTitle,
+          team_members_count: parseInt(formData.teamMembersCount),
+          team_members: formData.teamMembers,
+          software_requirements: formData.softwareRequirements,
+          hardware_requirements: formData.hardwareRequirements,
+          estimated_cost: formData.estimatedCost,
+          technologies: formData.technologies,
+          status: 'pending'
+        });
 
-    // Store in localStorage (simulating backend)
-    const existingSubmissions = JSON.parse(localStorage.getItem('proposync-submissions') || '[]');
-    const newSubmission = {
-      id: Date.now().toString(),
-      ...formData,
-      status: 'pending',
-      submittedAt: new Date().toISOString(),
-      remarks: ''
-    };
-    
-    existingSubmissions.push(newSubmission);
-    localStorage.setItem('proposync-submissions', JSON.stringify(existingSubmissions));
+      if (error) throw error;
 
-    setIsSubmitting(false);
-    
-    toast({
-      title: "Project Submitted Successfully! 🎉",
-      description: "Your project proposal has been submitted for review.",
-    });
+      toast({
+        title: "Project Submitted Successfully! 🎉",
+        description: "Your project proposal has been submitted for review.",
+      });
 
-    // Reset form
-    setFormData({
-      rollNumber: "",
-      studentName: "",
-      projectTitle: "",
-      teamMembersCount: "",
-      teamMembers: "",
-      softwareRequirements: "",
-      hardwareRequirements: "",
-      estimatedCost: "",
-      technologies: ""
-    });
+      // Reset form
+      setFormData({
+        projectTitle: "",
+        teamMembersCount: "",
+        teamMembers: "",
+        softwareRequirements: "",
+        hardwareRequirements: "",
+        estimatedCost: "",
+        technologies: ""
+      });
 
-    // Navigate back after a delay
-    setTimeout(() => navigate('/'), 2000);
+      // Navigate back after a delay
+      setTimeout(() => navigate('/student-dashboard'), 2000);
+    } catch (error: any) {
+      toast({
+        title: "Submission Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -81,9 +147,9 @@ const Submit = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
-            <Link to="/" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
+            <Link to="/student-dashboard" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
               <ArrowLeft className="h-5 w-5" />
-              <span>Back to Home</span>
+              <span>Back to Dashboard</span>
             </Link>
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
@@ -102,43 +168,17 @@ const Submit = () => {
               <FileText className="h-6 w-6" />
               <span>Submit Project Proposal</span>
             </CardTitle>
-            <p className="text-blue-100">Fill in all the required details for your project</p>
+            <p className="text-blue-100">Student: {profile?.name} ({user?.rollNumber})</p>
           </CardHeader>
           
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Info */}
+              {/* Project Info */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  <span>Basic Information</span>
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <span>Project Information</span>
                 </h3>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="rollNumber">Roll Number *</Label>
-                    <Input
-                      id="rollNumber"
-                      name="rollNumber"
-                      value={formData.rollNumber}
-                      onChange={handleInputChange}
-                      placeholder="e.g., 2021CS001"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="studentName">Student Name (Leader) *</Label>
-                    <Input
-                      id="studentName"
-                      name="studentName"
-                      value={formData.studentName}
-                      onChange={handleInputChange}
-                      placeholder="Enter your full name"
-                      required
-                    />
-                  </div>
-                </div>
                 
                 <div>
                   <Label htmlFor="projectTitle">Project Title *</Label>
@@ -148,6 +188,18 @@ const Submit = () => {
                     value={formData.projectTitle}
                     onChange={handleInputChange}
                     placeholder="Enter your project title"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="technologies">Technologies Used *</Label>
+                  <Input
+                    id="technologies"
+                    name="technologies"
+                    value={formData.technologies}
+                    onChange={handleInputChange}
+                    placeholder="e.g., React, Node.js, MongoDB, Python"
                     required
                   />
                 </div>
@@ -195,18 +247,6 @@ const Submit = () => {
                   <Code className="h-5 w-5 text-purple-600" />
                   <span>Technical Requirements</span>
                 </h3>
-                
-                <div>
-                  <Label htmlFor="technologies">Technologies Used *</Label>
-                  <Input
-                    id="technologies"
-                    name="technologies"
-                    value={formData.technologies}
-                    onChange={handleInputChange}
-                    placeholder="e.g., React, Node.js, MongoDB, Python"
-                    required
-                  />
-                </div>
                 
                 <div>
                   <Label htmlFor="softwareRequirements">Software Requirements</Label>

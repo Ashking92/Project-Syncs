@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Eye, CheckCircle, XCircle, MessageSquare, Search, FileText } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Eye, CheckCircle, XCircle, MessageSquare, Search, FileText, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,52 +9,104 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Submission {
   id: string;
-  rollNumber: string;
-  studentName: string;
-  projectTitle: string;
-  teamMembersCount: string;
-  teamMembers: string;
-  softwareRequirements: string;
-  hardwareRequirements: string;
-  estimatedCost: string;
+  roll_number: string;
+  student_name: string;
+  project_title: string;
+  team_members_count: number;
+  team_members: string;
+  software_requirements: string;
+  hardware_requirements: string;
+  estimated_cost: string;
   technologies: string;
   status: 'pending' | 'approved' | 'rejected';
-  submittedAt: string;
+  submitted_at: string;
   remarks: string;
 }
 
 const Admin = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [remarkText, setRemarkText] = useState("");
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem('proposync-submissions') || '[]');
-    setSubmissions(data);
+    checkAuth();
+    loadSubmissions();
   }, []);
 
+  const checkAuth = () => {
+    const userData = localStorage.getItem('proposync-user');
+    if (!userData) {
+      navigate('/auth');
+      return;
+    }
+
+    const parsedUser = JSON.parse(userData);
+    if (parsedUser.type !== 'admin') {
+      navigate('/auth');
+      return;
+    }
+  };
+
+  const loadSubmissions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('*')
+        .order('submitted_at', { ascending: false });
+
+      if (error) throw error;
+      setSubmissions(data || []);
+    } catch (error) {
+      console.error('Error loading submissions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load submissions",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const filteredSubmissions = submissions.filter(submission =>
-    submission.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    submission.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    submission.projectTitle.toLowerCase().includes(searchTerm.toLowerCase())
+    submission.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    submission.roll_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    submission.project_title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const updateSubmissionStatus = (id: string, status: 'approved' | 'rejected', remarks: string = '') => {
-    const updatedSubmissions = submissions.map(sub =>
-      sub.id === id ? { ...sub, status, remarks } : sub
-    );
-    setSubmissions(updatedSubmissions);
-    localStorage.setItem('proposync-submissions', JSON.stringify(updatedSubmissions));
-    
-    toast({
-      title: `Project ${status}!`,
-      description: `The project has been ${status} successfully.`,
-    });
+  const updateSubmissionStatus = async (id: string, status: 'approved' | 'rejected', remarks: string = '') => {
+    try {
+      const { error } = await supabase
+        .from('submissions')
+        .update({ status, remarks })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setSubmissions(prev => prev.map(sub =>
+        sub.id === id ? { ...sub, status, remarks } : sub
+      ));
+      
+      toast({
+        title: `Project ${status}!`,
+        description: `The project has been ${status} successfully.`,
+      });
+    } catch (error) {
+      console.error('Error updating submission:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update submission status",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -68,22 +120,44 @@ const Admin = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('proposync-user');
+    navigate('/auth');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <Link to="/" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-              <span>Back to Home</span>
-            </Link>
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <FileText className="h-5 w-5 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link to="/" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
+                <ArrowLeft className="h-5 w-5" />
+                <span>Back to Home</span>
+              </Link>
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                <h1 className="text-xl font-bold text-gray-900">PropoSync Admin</h1>
               </div>
-              <h1 className="text-xl font-bold text-gray-900">PropoSync Admin</h1>
             </div>
+            <Button onClick={handleLogout} variant="outline" size="sm">
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>
@@ -158,15 +232,15 @@ const Admin = () => {
                   <tbody>
                     {filteredSubmissions.map((submission) => (
                       <tr key={submission.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3 font-mono text-sm">{submission.rollNumber}</td>
-                        <td className="p-3">{submission.studentName}</td>
+                        <td className="p-3 font-mono text-sm">{submission.roll_number}</td>
+                        <td className="p-3">{submission.student_name}</td>
                         <td className="p-3">
-                          <div className="max-w-xs truncate" title={submission.projectTitle}>
-                            {submission.projectTitle}
+                          <div className="max-w-xs truncate" title={submission.project_title}>
+                            {submission.project_title}
                           </div>
                         </td>
-                        <td className="p-3">{submission.teamMembersCount}</td>
-                        <td className="p-3">₹{submission.estimatedCost}</td>
+                        <td className="p-3">{submission.team_members_count}</td>
+                        <td className="p-3">₹{submission.estimated_cost}</td>
                         <td className="p-3">{getStatusBadge(submission.status)}</td>
                         <td className="p-3">
                           <div className="flex space-x-2">
@@ -188,38 +262,38 @@ const Admin = () => {
                                   <div className="space-y-4">
                                     <div className="grid md:grid-cols-2 gap-4">
                                       <div>
-                                        <strong>Roll Number:</strong> {selectedSubmission.rollNumber}
+                                        <strong>Roll Number:</strong> {selectedSubmission.roll_number}
                                       </div>
                                       <div>
-                                        <strong>Student Name:</strong> {selectedSubmission.studentName}
+                                        <strong>Student Name:</strong> {selectedSubmission.student_name}
                                       </div>
                                     </div>
                                     <div>
-                                      <strong>Project Title:</strong> {selectedSubmission.projectTitle}
+                                      <strong>Project Title:</strong> {selectedSubmission.project_title}
                                     </div>
                                     <div>
                                       <strong>Technologies:</strong> {selectedSubmission.technologies}
                                     </div>
                                     <div>
-                                      <strong>Team Members ({selectedSubmission.teamMembersCount}):</strong>
+                                      <strong>Team Members ({selectedSubmission.team_members_count}):</strong>
                                       <pre className="mt-1 text-sm bg-gray-100 p-2 rounded">
-                                        {selectedSubmission.teamMembers}
+                                        {selectedSubmission.team_members}
                                       </pre>
                                     </div>
                                     <div>
                                       <strong>Software Requirements:</strong>
                                       <pre className="mt-1 text-sm bg-gray-100 p-2 rounded">
-                                        {selectedSubmission.softwareRequirements || 'Not specified'}
+                                        {selectedSubmission.software_requirements || 'Not specified'}
                                       </pre>
                                     </div>
                                     <div>
                                       <strong>Hardware Requirements:</strong>
                                       <pre className="mt-1 text-sm bg-gray-100 p-2 rounded">
-                                        {selectedSubmission.hardwareRequirements || 'Not specified'}
+                                        {selectedSubmission.hardware_requirements || 'Not specified'}
                                       </pre>
                                     </div>
                                     <div>
-                                      <strong>Estimated Cost:</strong> ₹{selectedSubmission.estimatedCost}
+                                      <strong>Estimated Cost:</strong> ₹{selectedSubmission.estimated_cost}
                                     </div>
                                     {selectedSubmission.remarks && (
                                       <div>
