@@ -51,19 +51,30 @@ const Auth = () => {
     try {
       const rollNumber = formData.rollNumber.toUpperCase();
       
-      // Check if roll number is in valid range (D234101 to D234160)
-      const rollMatch = rollNumber.match(/^D(\d{6})$/);
-      if (!rollMatch) {
-        throw new Error('Invalid roll number format. Use format: D234101');
-      }
-      
-      const rollNum = parseInt(rollMatch[1]);
-      if (rollNum < 234101 || rollNum > 234160) {
-        throw new Error('Roll number must be between D234101 and D234160');
-      }
+     // ✅ Validate roll number format and range based on branch
+function validateRollNumber(rollNumber, selectedBranch) {
+  const rollMatch = rollNumber.match(/^D(\d{6})$/);
+  if (!rollMatch) {
+    throw new Error('❌ Invalid roll number format. Use format like: D234101');
+  }
 
-      const deviceId = getDeviceFingerprint();
-      const ipAddress = await getClientIP();
+  const rollNum = parseInt(rollMatch[1], 10);
+
+  if (selectedBranch === "CS") {
+    if (rollNum < 234101 || rollNum > 234160) {
+      throw new Error('❌ CS roll number must be between D234101 and D234160');
+    }
+  } else if (selectedBranch === "IT") {
+    if (rollNum < 235101 || rollNum > 235130) {
+      throw new Error('❌ IT roll number must be between D235101 and D235130');
+    }
+  } else {
+    throw new Error('❌ Invalid branch selected. Please choose CS or IT.');
+  }
+
+  return rollNum;
+}
+
 
       // Check if profile exists
       const { data: existingProfile } = await supabase
