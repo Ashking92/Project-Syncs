@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, Upload, BarChart3, Users, LogIn } from "lucide-react";
+import { FileText, Upload, BarChart3, Users, GraduationCap, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,61 +16,69 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-r from-indigo-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-purple-300/10 to-pink-300/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="relative bg-white/80 backdrop-blur-sm shadow-sm border-b border-white/20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <FileText className="h-6 w-6 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <FileText className="h-7 w-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">PropoSync</h1>
-                <p className="text-sm text-gray-600">Project Proposal Management System</p>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Project Sync
+                </h1>
+                <p className="text-sm text-gray-600">Project Management System</p>
               </div>
             </div>
             
-            {user ? (
+            {user && (
               <div className="flex items-center space-x-4">
-                <span className="text-gray-600">
+                <span className="text-gray-600 font-medium">
                   Welcome, {user.type === 'admin' ? 'Admin' : user.rollNumber}
                 </span>
                 <Link
                   to={user.type === 'admin' ? '/admin' : '/student-dashboard'}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
                   Go to Dashboard
                 </Link>
               </div>
-            ) : (
-              <Link to="/auth">
-                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Login
-                </Button>
-              </Link>
             )}
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="relative container mx-auto px-4 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            Welcome to <span className="text-blue-600">PropoSync</span>
+          <h2 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 animate-fade-in">
+            Welcome to <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Project Sync</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            A comprehensive platform for college students to submit project proposals and for teachers to manage and review them effectively.
+          <p className="text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto mb-12 animate-fade-in delay-200">
+            A comprehensive platform for seamless project proposal management and collaboration
           </p>
           
           {!user && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/auth">
-                <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-lg px-8 py-4">
-                  <LogIn className="h-5 w-5 mr-2" />
-                  Get Started
+            <div className="flex flex-col sm:flex-row gap-6 justify-center animate-fade-in delay-300">
+              <Link to="/auth?type=student">
+                <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-lg px-10 py-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                  <GraduationCap className="h-6 w-6 mr-3" />
+                  Student Login
+                </Button>
+              </Link>
+              <Link to="/auth?type=admin">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white text-lg px-10 py-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                  <UserCheck className="h-6 w-6 mr-3" />
+                  Teacher Login
                 </Button>
               </Link>
             </div>
@@ -78,99 +86,99 @@ const Home = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          <Card className="shadow-lg border-0 hover:shadow-xl transition-shadow">
-            <CardHeader className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Upload className="h-8 w-8 text-white" />
+        <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <Card className="shadow-2xl border-0 hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-2 bg-white/70 backdrop-blur-sm animate-fade-in delay-400">
+            <CardHeader className="text-center pb-4">
+              <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg transform hover:rotate-6 transition-transform duration-300">
+                <Upload className="h-10 w-10 text-white" />
               </div>
-              <CardTitle className="text-xl">Easy Submission</CardTitle>
+              <CardTitle className="text-2xl font-bold text-gray-800">Easy Submission</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-gray-600">
-                Students can easily submit their project proposals with all required details including team information, technical requirements, and cost estimation.
+              <p className="text-gray-600 text-lg leading-relaxed">
+                Students can effortlessly submit project proposals with comprehensive details, team information, and technical requirements through our intuitive interface.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-0 hover:shadow-xl transition-shadow">
-            <CardHeader className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BarChart3 className="h-8 w-8 text-white" />
+          <Card className="shadow-2xl border-0 hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-2 bg-white/70 backdrop-blur-sm animate-fade-in delay-500">
+            <CardHeader className="text-center pb-4">
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg transform hover:rotate-6 transition-transform duration-300">
+                <BarChart3 className="h-10 w-10 text-white" />
               </div>
-              <CardTitle className="text-xl">Admin Dashboard</CardTitle>
+              <CardTitle className="text-2xl font-bold text-gray-800">Admin Dashboard</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-gray-600">
-                Teachers can review, approve, reject, and add remarks to project proposals through a comprehensive admin dashboard with search and filtering capabilities.
+              <p className="text-gray-600 text-lg leading-relaxed">
+                Teachers get powerful tools to review, approve, reject, and provide feedback on projects with advanced search, filtering, and real-time notifications.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-0 hover:shadow-xl transition-shadow">
-            <CardHeader className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-white" />
+          <Card className="shadow-2xl border-0 hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-2 bg-white/70 backdrop-blur-sm animate-fade-in delay-600">
+            <CardHeader className="text-center pb-4">
+              <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg transform hover:rotate-6 transition-transform duration-300">
+                <Users className="h-10 w-10 text-white" />
               </div>
-              <CardTitle className="text-xl">Team Management</CardTitle>
+              <CardTitle className="text-2xl font-bold text-gray-800">Team Management</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-gray-600">
-                Support for team projects with detailed team member information and collaborative project planning features.
+              <p className="text-gray-600 text-lg leading-relaxed">
+                Comprehensive support for collaborative projects with detailed team member management and streamlined project coordination features.
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Action Cards */}
+        {/* Action Cards for Authenticated Users */}
         {user && (
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto animate-fade-in">
             {user.type === 'student' ? (
               <>
-                <Card className="shadow-xl border-0 hover:shadow-2xl transition-shadow cursor-pointer">
+                <Card className="shadow-2xl border-0 hover:shadow-3xl transition-all duration-500 cursor-pointer transform hover:scale-105 bg-gradient-to-br from-green-50 to-emerald-50">
                   <Link to="/student-dashboard">
-                    <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-                      <CardTitle className="text-2xl flex items-center space-x-3">
-                        <Users className="h-8 w-8" />
+                    <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-t-lg p-8">
+                      <CardTitle className="text-3xl flex items-center space-x-4">
+                        <Users className="h-10 w-10" />
                         <span>Student Dashboard</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-8">
-                      <p className="text-gray-600 text-lg">
-                        Manage your profile, submit new projects, and track your submissions.
+                      <p className="text-gray-600 text-xl leading-relaxed">
+                        Manage your profile, submit new projects, track submissions, and receive real-time updates on your project status.
                       </p>
                     </CardContent>
                   </Link>
                 </Card>
 
-                <Card className="shadow-xl border-0 hover:shadow-2xl transition-shadow cursor-pointer">
+                <Card className="shadow-2xl border-0 hover:shadow-3xl transition-all duration-500 cursor-pointer transform hover:scale-105 bg-gradient-to-br from-blue-50 to-indigo-50">
                   <Link to="/submit">
-                    <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
-                      <CardTitle className="text-2xl flex items-center space-x-3">
-                        <Upload className="h-8 w-8" />
+                    <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg p-8">
+                      <CardTitle className="text-3xl flex items-center space-x-4">
+                        <Upload className="h-10 w-10" />
                         <span>Submit Project</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-8">
-                      <p className="text-gray-600 text-lg">
-                        Submit your project proposal with all the required details and documentation.
+                      <p className="text-gray-600 text-xl leading-relaxed">
+                        Submit your innovative project proposals with comprehensive documentation and technical specifications.
                       </p>
                     </CardContent>
                   </Link>
                 </Card>
               </>
             ) : (
-              <Card className="shadow-xl border-0 hover:shadow-2xl transition-shadow cursor-pointer md:col-span-2">
+              <Card className="shadow-2xl border-0 hover:shadow-3xl transition-all duration-500 cursor-pointer md:col-span-2 transform hover:scale-105 bg-gradient-to-br from-purple-50 to-indigo-50">
                 <Link to="/admin">
-                  <CardHeader className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-t-lg">
-                    <CardTitle className="text-2xl flex items-center space-x-3">
-                      <BarChart3 className="h-8 w-8" />
+                  <CardHeader className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-t-lg p-8">
+                    <CardTitle className="text-3xl flex items-center space-x-4">
+                      <BarChart3 className="h-10 w-10" />
                       <span>Admin Dashboard</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-8">
-                    <p className="text-gray-600 text-lg">
-                      Review and manage all project submissions from students. Approve, reject, or add remarks to proposals.
+                    <p className="text-gray-600 text-xl leading-relaxed">
+                      Comprehensive project management hub to review, evaluate, and manage all student submissions with real-time analytics and communication tools.
                     </p>
                   </CardContent>
                 </Link>
@@ -181,17 +189,19 @@ const Home = () => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t mt-16">
-        <div className="container mx-auto px-4 py-8">
+      <footer className="relative bg-white/80 backdrop-blur-sm border-t border-white/20 mt-20">
+        <div className="container mx-auto px-4 py-12">
           <div className="text-center">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <FileText className="h-5 w-5 text-white" />
+            <div className="flex items-center justify-center space-x-4 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <FileText className="h-6 w-6 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900">PropoSync</h3>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Project Sync
+              </h3>
             </div>
-            <p className="text-gray-600">
-              Streamlining project proposal management for educational institutions.
+            <p className="text-gray-600 text-lg">
+              Streamlining project proposal management for educational institutions
             </p>
           </div>
         </div>

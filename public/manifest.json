@@ -1,7 +1,7 @@
 
 {
-  "name": "PropoSync - Project Management System",
-  "short_name": "PropoSync",
+  "name": "Project Sync - Project Management System",
+  "short_name": "Project Sync",
   "description": "College project topic collection and management system",
   "start_url": "/",
   "display": "standalone",
