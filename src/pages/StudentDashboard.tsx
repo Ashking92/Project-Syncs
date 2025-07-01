@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Edit, Home, Folder, Settings, LogOut, Menu, Bell, CheckCircle, Clock, XCircle } from "lucide-react";
@@ -9,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import NoticesPanel from "@/components/NoticesPanel";
 
 interface StudentProfile {
   id: string;
@@ -537,7 +537,16 @@ const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {renderHomeTab()}
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b bg-white">
+        <h1 className="text-xl font-semibold text-gray-900">Student Dashboard</h1>
+        <div className="flex items-center space-x-4">
+          <NoticesPanel />
+          <button onClick={handleLogout}>
+            <LogOut className="h-6 w-6 text-gray-700" />
+          </button>
+        </div>
+      </div>
       
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">

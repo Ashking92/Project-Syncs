@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Plus, Eye, CheckCircle, XCircle, LogOut, Users } from "lucide-react";
@@ -9,6 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Submission {
   id: string;
@@ -27,6 +35,15 @@ interface Submission {
   remarks: string;
 }
 
+interface Student {
+  id: string;
+  roll_number: string;
+  name: string;
+  email: string;
+  phone_number: string;
+  created_at: string;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -38,11 +55,18 @@ const Admin = () => {
   const [studentCount, setStudentCount] = useState(0);
   const [csStudents, setCsStudents] = useState(0);
   const [itStudents, setItStudents] = useState(0);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [activeTab, setActiveTab] = useState('submissions');
+  const [noticeTitle, setNoticeTitle] = useState('');
+  const [noticeMessage, setNoticeMessage] = useState('');
+  const [targetType, setTargetType] = useState<'all' | 'individual'>('all');
+  const [targetRollNumber, setTargetRollNumber] = useState('');
 
   useEffect(() => {
     checkAuth();
     loadSubmissions();
     loadStudentCounts();
+    loadStudents();
     
     // Set up real-time subscription for submissions
     const submissionsChannel = supabase
@@ -149,6 +173,20 @@ const Admin = () => {
     }
   };
 
+  const loadStudents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setStudents(data || []);
+    } catch (error) {
+      console.error('Error loading students:', error);
+    }
+  };
+
   const filteredSubmissions = submissions.filter(submission => {
     const matchesSearch = submission.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       submission.roll_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -200,6 +238,57 @@ const Admin = () => {
   const handleLogout = () => {
     localStorage.removeItem('proposync-user');
     navigate('/auth');
+  };
+
+  const sendNotice = async () => {
+    if (!noticeTitle.trim() || !noticeMessage.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in both title and message",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (targetType === 'individual' && !targetRollNumber.trim()) {
+      toast({
+        title: "Error", 
+        description: "Please specify target roll number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('notices')
+        .insert({
+          title: noticeTitle,
+          message: noticeMessage,
+          target_type: targetType,
+          target_roll_number: targetType === 'individual' ? targetRollNumber : null
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Notice Sent!",
+        description: `Notice sent to ${targetType === 'all' ? 'all students' : targetRollNumber}`,
+      });
+
+      // Reset form
+      setNoticeTitle('');
+      setNoticeMessage('');
+      setTargetRollNumber('');
+      setTargetType('all');
+    } catch (error) {
+      console.error('Error sending notice:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send notice",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -271,160 +360,294 @@ const Admin = () => {
           </Card>
         </div>
 
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Submissions ({submissions.length})</h2>
-
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input
-            placeholder="Search submissions"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-12 rounded-xl border-gray-200 bg-gray-100"
-          />
-        </div>
-
-        {/* Filter Tabs */}
+        {/* Tab Navigation */}
         <div className="flex space-x-2 mb-6">
-          {['All', 'Pending', 'Approved', 'Rejected'].map((filterOption) => (
+          {['submissions', 'students', 'notices'].map((tab) => (
             <button
-              key={filterOption}
-              onClick={() => setFilter(filterOption)}
-              className={`px-4 py-2 rounded-full text-sm font-medium ${
-                filter === filterOption
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
+                activeTab === tab
                   ? 'bg-gray-900 text-white'
                   : 'bg-gray-200 text-gray-700'
               }`}
             >
-              {filterOption} ({filterOption === 'All' ? submissions.length : submissions.filter(s => s.status.toLowerCase() === filterOption.toLowerCase()).length})
+              {tab}
             </button>
           ))}
         </div>
 
-        {/* Submissions List */}
-        <div className="space-y-4">
-          {filteredSubmissions.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No submissions found</p>
+        {/* Submissions Tab */}
+        {activeTab === 'submissions' && (
+          <>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Submissions ({submissions.length})</h2>
+
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                placeholder="Search submissions"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-12 rounded-xl border-gray-200 bg-gray-100"
+              />
             </div>
-          ) : (
-            filteredSubmissions.map((submission) => (
-              <div key={submission.id} className="bg-white rounded-xl p-4 border border-gray-200">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">
-                      {submission.project_title}
-                    </h3>
-                    <p className="text-gray-600 text-sm mb-1">
-                      {submission.student_name} ({submission.roll_number})
-                    </p>
-                    <p className="text-gray-500 text-xs">
-                      Team: {submission.team_members_count} members | Cost: ₹{submission.estimated_cost}
-                    </p>
+
+            {/* Filter Tabs */}
+            <div className="flex space-x-2 mb-6">
+              {['All', 'Pending', 'Approved', 'Rejected'].map((filterOption) => (
+                <button
+                  key={filterOption}
+                  onClick={() => setFilter(filterOption)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium ${
+                    filter === filterOption
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  {filterOption} ({filterOption === 'All' ? submissions.length : submissions.filter(s => s.status.toLowerCase() === filterOption.toLowerCase()).length})
+                </button>
+              ))}
+            </div>
+
+            {/* Submissions List */}
+            <div className="space-y-4">
+              {filteredSubmissions.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No submissions found</p>
+                </div>
+              ) : (
+                filteredSubmissions.map((submission) => (
+                  <div key={submission.id} className="bg-white rounded-xl p-4 border border-gray-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 mb-1">
+                          {submission.project_title}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-1">
+                          {submission.student_name} ({submission.roll_number})
+                        </p>
+                        <p className="text-gray-500 text-xs">
+                          Team: {submission.team_members_count} members | Cost: ₹{submission.estimated_cost}
+                        </p>
+                      </div>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedSubmission(submission)}
+                            className="rounded-full"
+                          >
+                            Review
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Project Details</DialogTitle>
+                          </DialogHeader>
+                          {selectedSubmission && (
+                            <div className="space-y-4">
+                              <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                  <strong>Roll Number:</strong> {selectedSubmission.roll_number}
+                                </div>
+                                <div>
+                                  <strong>Student Name:</strong> {selectedSubmission.student_name}
+                                </div>
+                                <div>
+                                  <strong>Team Members:</strong> {selectedSubmission.team_members_count}
+                                </div>
+                                <div>
+                                  <strong>Estimated Cost:</strong> ₹{selectedSubmission.estimated_cost}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <strong>Project Title:</strong> {selectedSubmission.project_title}
+                              </div>
+                              
+                              {selectedSubmission.project_description && (
+                                <div>
+                                  <strong>Description:</strong>
+                                  <p className="mt-1 text-gray-700">{selectedSubmission.project_description}</p>
+                                </div>
+                              )}
+                              
+                              <div>
+                                <strong>Technologies:</strong> {selectedSubmission.technologies}
+                              </div>
+                              
+                              <div>
+                                <strong>Team Members:</strong>
+                                <p className="mt-1 text-gray-700">{selectedSubmission.team_members}</p>
+                              </div>
+                              
+                              {selectedSubmission.software_requirements && (
+                                <div>
+                                  <strong>Software Requirements:</strong>
+                                  <p className="mt-1 text-gray-700">{selectedSubmission.software_requirements}</p>
+                                </div>
+                              )}
+                              
+                              {selectedSubmission.hardware_requirements && (
+                                <div>
+                                  <strong>Hardware Requirements:</strong>
+                                  <p className="mt-1 text-gray-700">{selectedSubmission.hardware_requirements}</p>
+                                </div>
+                              )}
+                              
+                              <div>
+                                <strong>Submitted:</strong> {new Date(selectedSubmission.submitted_at).toLocaleString()}
+                              </div>
+                              
+                              <div className="flex space-x-2 pt-4">
+                                <Button
+                                  onClick={() => updateSubmissionStatus(selectedSubmission.id, 'approved')}
+                                  className="bg-green-500 hover:bg-green-600 text-white"
+                                  disabled={selectedSubmission.status === 'approved'}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  onClick={() => updateSubmissionStatus(selectedSubmission.id, 'rejected')}
+                                  className="bg-red-500 hover:bg-red-600 text-white"
+                                  disabled={selectedSubmission.status === 'rejected'}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Reject
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      {getStatusBadge(submission.status)}
+                      <span className="text-xs text-gray-500">
+                        {new Date(submission.submitted_at).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedSubmission(submission)}
-                        className="rounded-full"
-                      >
-                        Review
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Project Details</DialogTitle>
-                      </DialogHeader>
-                      {selectedSubmission && (
-                        <div className="space-y-4">
-                          <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                              <strong>Roll Number:</strong> {selectedSubmission.roll_number}
-                            </div>
-                            <div>
-                              <strong>Student Name:</strong> {selectedSubmission.student_name}
-                            </div>
-                            <div>
-                              <strong>Team Members:</strong> {selectedSubmission.team_members_count}
-                            </div>
-                            <div>
-                              <strong>Estimated Cost:</strong> ₹{selectedSubmission.estimated_cost}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <strong>Project Title:</strong> {selectedSubmission.project_title}
-                          </div>
-                          
-                          {selectedSubmission.project_description && (
-                            <div>
-                              <strong>Description:</strong>
-                              <p className="mt-1 text-gray-700">{selectedSubmission.project_description}</p>
-                            </div>
-                          )}
-                          
-                          <div>
-                            <strong>Technologies:</strong> {selectedSubmission.technologies}
-                          </div>
-                          
-                          <div>
-                            <strong>Team Members:</strong>
-                            <p className="mt-1 text-gray-700">{selectedSubmission.team_members}</p>
-                          </div>
-                          
-                          {selectedSubmission.software_requirements && (
-                            <div>
-                              <strong>Software Requirements:</strong>
-                              <p className="mt-1 text-gray-700">{selectedSubmission.software_requirements}</p>
-                            </div>
-                          )}
-                          
-                          {selectedSubmission.hardware_requirements && (
-                            <div>
-                              <strong>Hardware Requirements:</strong>
-                              <p className="mt-1 text-gray-700">{selectedSubmission.hardware_requirements}</p>
-                            </div>
-                          )}
-                          
-                          <div>
-                            <strong>Submitted:</strong> {new Date(selectedSubmission.submitted_at).toLocaleString()}
-                          </div>
-                          
-                          <div className="flex space-x-2 pt-4">
-                            <Button
-                              onClick={() => updateSubmissionStatus(selectedSubmission.id, 'approved')}
-                              className="bg-green-500 hover:bg-green-600 text-white"
-                              disabled={selectedSubmission.status === 'approved'}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Approve
-                            </Button>
-                            <Button
-                              onClick={() => updateSubmissionStatus(selectedSubmission.id, 'rejected')}
-                              className="bg-red-500 hover:bg-red-600 text-white"
-                              disabled={selectedSubmission.status === 'rejected'}
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Reject
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
+                ))
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Students Tab */}
+        {activeTab === 'students' && (
+          <>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Registered Students ({students.length})</h2>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Roll Number</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Registered</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="font-medium">{student.roll_number}</TableCell>
+                      <TableCell>{student.name || 'N/A'}</TableCell>
+                      <TableCell>{student.email || 'N/A'}</TableCell>
+                      <TableCell>{student.phone_number || 'N/A'}</TableCell>
+                      <TableCell>{new Date(student.created_at).toLocaleDateString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+
+        {/* Notices Tab */}
+        {activeTab === 'notices' && (
+          <>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Send Notice</h2>
+            <div className="bg-white rounded-xl p-6 border border-gray-200 max-w-2xl">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notice Title
+                  </label>
+                  <Input
+                    value={noticeTitle}
+                    onChange={(e) => setNoticeTitle(e.target.value)}
+                    placeholder="Enter notice title"
+                    className="w-full"
+                  />
                 </div>
-                <div className="flex justify-between items-center">
-                  {getStatusBadge(submission.status)}
-                  <span className="text-xs text-gray-500">
-                    {new Date(submission.submitted_at).toLocaleDateString()}
-                  </span>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Message
+                  </label>
+                  <Textarea
+                    value={noticeMessage}
+                    onChange={(e) => setNoticeMessage(e.target.value)}
+                    placeholder="Enter notice message"
+                    rows={4}
+                    className="w-full"
+                  />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target
+                  </label>
+                  <div className="flex space-x-4 mb-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="target"
+                        value="all"
+                        checked={targetType === 'all'}
+                        onChange={(e) => setTargetType(e.target.value as 'all')}
+                        className="mr-2"
+                      />
+                      All Students
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="target"
+                        value="individual"
+                        checked={targetType === 'individual'}
+                        onChange={(e) => setTargetType(e.target.value as 'individual')}
+                        className="mr-2"
+                      />
+                      Specific Student
+                    </label>
+                  </div>
+                  
+                  {targetType === 'individual' && (
+                    <Input
+                      value={targetRollNumber}
+                      onChange={(e) => setTargetRollNumber(e.target.value)}
+                      placeholder="Enter roll number (e.g., D234101)"
+                      className="w-full"
+                    />
+                  )}
+                </div>
+
+                <Button
+                  onClick={sendNotice}
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  Send Notice
+                </Button>
               </div>
-            ))
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
