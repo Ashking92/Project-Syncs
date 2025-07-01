@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Eye, CheckCircle, XCircle, LogOut } from "lucide-react";
+import { Search, Plus, Eye, CheckCircle, XCircle, LogOut, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,13 +35,17 @@ const Admin = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [studentCount, setStudentCount] = useState(0);
+  const [csStudents, setCsStudents] = useState(0);
+  const [itStudents, setItStudents] = useState(0);
 
   useEffect(() => {
     checkAuth();
     loadSubmissions();
+    loadStudentCounts();
     
-    // Set up real-time subscription
-    const channel = supabase
+    // Set up real-time subscription for submissions
+    const submissionsChannel = supabase
       .channel('submissions-changes')
       .on('postgres_changes', {
         event: '*',
@@ -51,8 +56,21 @@ const Admin = () => {
       })
       .subscribe();
 
+    // Set up real-time subscription for student registrations
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'profiles'
+      }, () => {
+        loadStudentCounts();
+      })
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(submissionsChannel);
+      supabase.removeChannel(profilesChannel);
     };
   }, []);
 
@@ -67,6 +85,41 @@ const Admin = () => {
     if (parsedUser.type !== 'admin') {
       navigate('/auth');
       return;
+    }
+  };
+
+  const loadStudentCounts = async () => {
+    try {
+      // Get total student count
+      const { count: totalCount, error: totalError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      if (totalError) throw totalError;
+      setStudentCount(totalCount || 0);
+
+      // Get CS students count (D234101-D234160)
+      const { count: csCount, error: csError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .gte('roll_number', 'D234101')
+        .lte('roll_number', 'D234160');
+
+      if (csError) throw csError;
+      setCsStudents(csCount || 0);
+
+      // Get IT students count (D235101-D235130)
+      const { count: itCount, error: itError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .gte('roll_number', 'D235101')
+        .lte('roll_number', 'D235130');
+
+      if (itError) throw itError;
+      setItStudents(itCount || 0);
+
+    } catch (error) {
+      console.error('Error loading student counts:', error);
     }
   };
 
@@ -164,7 +217,7 @@ const Admin = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-white">
-        <h1 className="text-xl font-semibold text-gray-900">Submissions ({submissions.length})</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>
         <div className="flex items-center space-x-4">
           <div className="text-sm text-gray-600">
             Real-time Updates Active
@@ -175,8 +228,52 @@ const Admin = () => {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Student Registration Stats */}
       <div className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="rounded-xl border-gray-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <Users className="h-5 w-5 mr-2 text-blue-600" />
+                Total Students
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-600">{studentCount}</div>
+              <p className="text-sm text-gray-600">Registered Students</p>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl border-gray-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <Users className="h-5 w-5 mr-2 text-green-600" />
+                CS Department
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">{csStudents}</div>
+              <p className="text-sm text-gray-600">D234101 - D234160</p>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl border-gray-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <Users className="h-5 w-5 mr-2 text-purple-600" />
+                IT Department
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-purple-600">{itStudents}</div>
+              <p className="text-sm text-gray-600">D235101 - D235130</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Submissions ({submissions.length})</h2>
+
+        {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <Input

@@ -181,7 +181,7 @@ const Submit = () => {
               name="projectDescription"
               value={formData.projectDescription}
               onChange={handleInputChange}
-              placeholder="Enter project description"
+              placeholder="Describe your project in detail"
               className="min-h-32 text-base rounded-xl border-gray-200 bg-white resize-none"
               required
             />

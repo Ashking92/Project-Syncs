@@ -53,6 +53,7 @@ export type Database = {
           estimated_cost: string
           hardware_requirements: string | null
           id: string
+          project_description: string | null
           project_title: string
           remarks: string | null
           roll_number: string
@@ -69,6 +70,7 @@ export type Database = {
           estimated_cost: string
           hardware_requirements?: string | null
           id?: string
+          project_description?: string | null
           project_title: string
           remarks?: string | null
           roll_number: string
@@ -85,6 +87,7 @@ export type Database = {
           estimated_cost?: string
           hardware_requirements?: string | null
           id?: string
+          project_description?: string | null
           project_title?: string
           remarks?: string | null
           roll_number?: string
