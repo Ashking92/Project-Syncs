@@ -25,5 +25,22 @@
   ],
   "categories": ["education", "productivity"],
   "lang": "en-US",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "standalone"],
+  "shortcuts": [
+    {
+      "name": "Student Dashboard",
+      "short_name": "Dashboard",
+      "description": "Access your student dashboard",
+      "url": "/student-dashboard",
+      "icons": [{ "src": "/feedback.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Submit Project",
+      "short_name": "Submit",
+      "description": "Submit new project",
+      "url": "/submit",
+      "icons": [{ "src": "/feedback.png", "sizes": "192x192" }]
+    }
+  ]
 }

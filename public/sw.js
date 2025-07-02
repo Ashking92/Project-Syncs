@@ -1,35 +1,29 @@
 
-const CACHE_NAME = 'proposync-v1';
+const CACHE_NAME = 'proposync-v2';
 const urlsToCache = [
   '/',
   '/submit',
   '/admin',
+  '/auth',
+  '/student-dashboard',
+  '/welcome',
   '/static/js/bundle.js',
   '/static/css/main.css',
   '/manifest.json'
 ];
 
+// Prevent automatic refresh on PWA
 self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(urlsToCache))
-  );
-});
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
+      .then(() => self.skipWaiting()) // Take control immediately
   );
 });
 
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -39,7 +33,63 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // Take control of all pages
+  );
+});
+
+// Enhanced fetch handler to prevent unnecessary refreshes
+self.addEventListener('fetch', (event) => {
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  // Handle navigation requests (page refreshes)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // If successful, return the response
+          if (response.ok) {
+            return response;
+          }
+          // If failed, serve the cached index.html (SPA fallback)
+          return caches.match('/') || caches.match('/index.html');
+        })
+        .catch(() => {
+          // Network failed, serve cached index.html
+          return caches.match('/') || caches.match('/index.html');
+        })
+    );
+    return;
+  }
+
+  // Handle other requests
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        if (response) {
+          return response;
+        }
+        
+        return fetch(event.request)
+          .then((response) => {
+            // Don't cache if not a valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            // Clone the response
+            const responseToCache = response.clone();
+            
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+
+            return response;
+          });
+      })
   );
 });
 
@@ -125,8 +175,14 @@ self.addEventListener('sync', (event) => {
   
   if (event.tag === 'background-sync') {
     event.waitUntil(
-      // Handle background sync operations here
       console.log('Performing background sync...')
     );
+  }
+});
+
+// Handle app updates without forcing refresh
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });
