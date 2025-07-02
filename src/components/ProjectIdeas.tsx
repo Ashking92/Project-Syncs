@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Code, Database, Globe, Smartphone, Brain, Shield, GameController2, TrendingUp, Zap } from "lucide-react";
+import { Lightbulb, Code, Database, Globe, Smartphone, Brain, Shield, Gamepad2, TrendingUp, Zap } from "lucide-react";
 
 interface ProjectIdea {
   id: string;
@@ -95,7 +94,7 @@ const csProjectIdeas: ProjectIdea[] = [
     difficulty: "Advanced",
     technologies: ["Unity", "C#", "3D Modeling", "WebGL"],
     category: "Game Development",
-    icon: <GameController2 className="h-5 w-5" />
+    icon: <Gamepad2 className="h-5 w-5" />
   },
   {
     id: "10",
