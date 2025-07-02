@@ -12,8 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import NoticesPanel from "@/components/NoticesPanel";
 import ProjectIdeas from "@/components/ProjectIdeas";
 import InstallGuide from "@/components/InstallGuide";
-import DeviceRestrictionModal from "@/components/DeviceRestrictionModal";
-import useDeviceRestriction from "@/hooks/useDeviceRestriction";
 
 interface StudentProfile {
   id: string;
@@ -47,9 +45,6 @@ const StudentDashboard = () => {
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
   
-  // Device restriction hook
-  const { isDeviceAllowed, deviceInfo, isLoading: deviceLoading } = useDeviceRestriction(user?.rollNumber || null);
-  
   const [formData, setFormData] = useState({
     name: "",
     phone_number: "",
@@ -57,7 +52,7 @@ const StudentDashboard = () => {
     photo_url: ""
   });
 
-  // Check if app is running as PWA
+  // Check if app is running as PWA and setup push notifications
   useEffect(() => {
     const checkPWA = () => {
       const isPWAMode = window.matchMedia('(display-mode: standalone)').matches ||
@@ -72,31 +67,39 @@ const StudentDashboard = () => {
       }
     };
 
+    const setupPushNotifications = async () => {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          console.log('Service Worker registered:', registration);
+          
+          // Request notification permission
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            console.log('Notification permission granted');
+          }
+        } catch (error) {
+          console.error('Service Worker registration failed:', error);
+        }
+      }
+    };
+
     checkPWA();
+    setupPushNotifications();
   }, [user]);
 
-  // Handle device restriction
   useEffect(() => {
-    if (!deviceLoading && isDeviceAllowed === false) {
-      // Device not allowed, show restriction modal
-      return;
-    }
-  }, [deviceLoading, isDeviceAllowed]);
-
-  useEffect(() => {
-    if (!authLoading && !deviceLoading) {
+    if (!authLoading) {
       if (!user || user.type !== 'student' || !user.rollNumber) {
         navigate('/auth?type=student');
         return;
       }
-      if (isDeviceAllowed === true) {
-        loadProfile(user.rollNumber);
-      }
+      loadProfile(user.rollNumber);
     }
-  }, [user, authLoading, deviceLoading, isDeviceAllowed, navigate]);
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (profile && user && isDeviceAllowed) {
+    if (profile && user) {
       loadSubmissions();
       
       // Set up real-time subscription for submissions
@@ -117,6 +120,16 @@ const StudentDashboard = () => {
             
             if (newStatus !== oldStatus && (newStatus === 'approved' || newStatus === 'rejected')) {
               setHasNewNotification(true);
+              
+              // Show browser notification
+              if (Notification.permission === 'granted') {
+                new Notification(`Project ${newStatus === 'approved' ? 'Approved! 🎉' : 'Update'}`, {
+                  body: `Your project "${payload.new.project_title}" has been ${newStatus}.`,
+                  icon: '/feedback.png',
+                  badge: '/feedback.png'
+                });
+              }
+              
               toast({
                 title: `Project ${newStatus === 'approved' ? 'Approved! 🎉' : 'Update'}`,
                 description: `Your project "${payload.new.project_title}" has been ${newStatus}.`,
@@ -131,7 +144,7 @@ const StudentDashboard = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [profile, user, isDeviceAllowed]);
+  }, [profile, user]);
 
   const loadProfile = async (rollNumber: string) => {
     try {
@@ -266,20 +279,13 @@ const StudentDashboard = () => {
     }
   };
 
-  // Show device restriction modal if device is not allowed
-  if (!deviceLoading && isDeviceAllowed === false) {
-    return <DeviceRestrictionModal deviceInfo={deviceInfo} onLogout={handleLogout} />;
-  }
-
-  // Show loading if auth or device check is in progress
-  if (authLoading || deviceLoading || (isLoading && !profile)) {
+  // Show loading if auth is in progress
+  if (authLoading || (isLoading && !profile)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="text-gray-600 mt-4">
-            {deviceLoading ? 'Checking device authorization...' : 'Loading your dashboard...'}
-          </p>
+          <p className="text-gray-600 mt-4">Loading your dashboard...</p>
         </div>
       </div>
     );

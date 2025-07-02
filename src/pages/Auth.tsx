@@ -108,7 +108,6 @@ const Auth = () => {
           .from('profiles')
           .insert({
             roll_number: rollNumber,
-            device_id: navigator.userAgent,
             ip_address: 'web-login'
           })
           .select()
