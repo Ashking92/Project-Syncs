@@ -1,27 +1,29 @@
 
 {
-  "name": "Project Sync - Project Management System",
-  "short_name": "Project Sync",
+  "name": "PropoSync - Project Management System",
+  "short_name": "PropoSync",
   "description": "College project topic collection and management system",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "orientation": "portrait-primary",
+  "scope": "/",
   "icons": [
     {
-      "src": "/placeholder.svg",
+      "src": "/feedback.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/placeholder.svg",
+      "src": "/feedback.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
   "categories": ["education", "productivity"],
-  "lang": "en-US"
+  "lang": "en-US",
+  "prefer_related_applications": false
 }

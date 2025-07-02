@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import NoticesPanel from "@/components/NoticesPanel";
 
@@ -32,7 +33,7 @@ interface Submission {
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
+  const { user, isLoading: authLoading, logout } = useAuth();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -48,11 +49,17 @@ const StudentDashboard = () => {
   });
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (!authLoading) {
+      if (!user || user.type !== 'student' || !user.rollNumber) {
+        navigate('/auth?type=student');
+        return;
+      }
+      loadProfile(user.rollNumber);
+    }
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (profile) {
+    if (profile && user) {
       loadSubmissions();
       
       // Set up real-time subscription for submissions
@@ -88,30 +95,6 @@ const StudentDashboard = () => {
       };
     }
   }, [profile, user]);
-
-  const checkAuth = () => {
-    try {
-      const userData = localStorage.getItem('proposync-user');
-      if (!userData) {
-        navigate('/auth?type=student');
-        return;
-      }
-
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.type !== 'student' || !parsedUser.rollNumber) {
-        localStorage.removeItem('proposync-user');
-        navigate('/auth?type=student');
-        return;
-      }
-
-      setUser(parsedUser);
-      loadProfile(parsedUser.rollNumber);
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      localStorage.removeItem('proposync-user');
-      navigate('/auth?type=student');
-    }
-  };
 
   const loadProfile = async (rollNumber: string) => {
     try {
@@ -185,7 +168,7 @@ const StudentDashboard = () => {
           photo_url: formData.photo_url,
           updated_at: new Date().toISOString()
         })
-        .eq('roll_number', user.rollNumber);
+        .eq('roll_number', user!.rollNumber);
 
       if (error) throw error;
 
@@ -195,7 +178,7 @@ const StudentDashboard = () => {
       });
 
       setIsEditing(false);
-      loadProfile(user.rollNumber);
+      loadProfile(user!.rollNumber);
       setActiveTab('home');
     } catch (error: any) {
       toast({
@@ -206,11 +189,6 @@ const StudentDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('proposync-user');
-    navigate('/auth');
   };
 
   const getStatusIcon = (status: string) => {
@@ -235,7 +213,7 @@ const StudentDashboard = () => {
     }
   };
 
-  if (isLoading && !profile) {
+  if (authLoading || (isLoading && !profile)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -456,7 +434,7 @@ const StudentDashboard = () => {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
             )}
           </div>
-          <button onClick={handleLogout}>
+          <button onClick={logout}>
             <LogOut className="h-6 w-6 text-gray-700" />
           </button>
         </div>

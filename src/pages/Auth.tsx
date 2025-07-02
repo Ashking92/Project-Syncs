@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, User, Shield, GraduationCap, UserCheck } from "lucide-react";
@@ -19,6 +18,42 @@ const Auth = () => {
   const [department, setDepartment] = useState("");
   const [adminCode, setAdminCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Check if user is already authenticated
+    const checkAuthState = async () => {
+      try {
+        const userData = localStorage.getItem('proposync-user');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          
+          // Verify the stored data is still valid
+          if (parsedUser.type === 'student' && parsedUser.rollNumber) {
+            // For students, verify profile still exists
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('roll_number', parsedUser.rollNumber)
+              .single();
+            
+            if (profile) {
+              navigate('/student-dashboard');
+              return;
+            }
+          } else if (parsedUser.type === 'admin' && parsedUser.adminCode) {
+            navigate('/admin');
+            return;
+          }
+        }
+      } catch (error) {
+        console.log('Auth check error:', error);
+        // Clear invalid auth data
+        localStorage.removeItem('proposync-user');
+      }
+    };
+
+    checkAuthState();
+  }, [navigate]);
 
   const validateRollNumber = (rollNum: string, dept: string) => {
     const numericPart = parseInt(rollNum.substring(1));
@@ -83,13 +118,20 @@ const Auth = () => {
         profile = newProfile;
       }
 
-      // Store user data in localStorage
-      localStorage.setItem('proposync-user', JSON.stringify({
+      // Store user data with timestamp for persistence
+      const userData = {
         type: 'student',
         rollNumber: rollNumber,
         department: department,
-        profileId: profile.id
-      }));
+        profileId: profile.id,
+        loginTime: new Date().toISOString(),
+        persistentLogin: true
+      };
+
+      localStorage.setItem('proposync-user', JSON.stringify(userData));
+      
+      // Also store in sessionStorage as backup
+      sessionStorage.setItem('proposync-user-backup', JSON.stringify(userData));
 
       toast({
         title: "Login Successful! 🎉",
@@ -122,10 +164,18 @@ const Auth = () => {
       return;
     }
 
-    localStorage.setItem('proposync-user', JSON.stringify({
+    // Store admin data with persistence
+    const adminData = {
       type: 'admin',
-      adminCode: adminCode
-    }));
+      adminCode: adminCode,
+      loginTime: new Date().toISOString(),
+      persistentLogin: true
+    };
+
+    localStorage.setItem('proposync-user', JSON.stringify(adminData));
+    
+    // Also store in sessionStorage as backup
+    sessionStorage.setItem('proposync-user-backup', JSON.stringify(adminData));
 
     toast({
       title: "Admin Login Successful! 🎉",
