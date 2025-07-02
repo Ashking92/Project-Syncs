@@ -61,46 +61,70 @@ const Admin = () => {
   const [noticeMessage, setNoticeMessage] = useState('');
   const [targetType, setTargetType] = useState<'all' | 'individual'>('all');
   const [targetRollNumber, setTargetRollNumber] = useState('');
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
 
   useEffect(() => {
     console.log('Admin component mounted, starting initialization...');
-    checkAuth();
-    loadSubmissions();
-    loadStudentCounts();
-    loadStudents();
-    
-    // Set up real-time subscription for submissions
-    const submissionsChannel = supabase
-      .channel('submissions-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'submissions'
-      }, (payload) => {
-        console.log('Real-time submission change:', payload);
-        loadSubmissions();
-      })
-      .subscribe();
-
-    // Set up real-time subscription for student registrations
-    const profilesChannel = supabase
-      .channel('profiles-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'profiles'
-      }, (payload) => {
-        console.log('Real-time profile change:', payload);
-        loadStudentCounts();
-      })
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up real-time subscriptions...');
-      supabase.removeChannel(submissionsChannel);
-      supabase.removeChannel(profilesChannel);
-    };
+    initializeAdmin();
   }, []);
+
+  const initializeAdmin = async () => {
+    try {
+      console.log('Starting admin initialization...');
+      
+      // Check authentication first
+      if (!checkAuth()) {
+        return;
+      }
+
+      // Test database connection
+      await testDatabaseConnection();
+      
+      // Load all data
+      await Promise.all([
+        loadSubmissions(),
+        loadStudentCounts(),
+        loadStudents()
+      ]);
+
+      // Set up real-time subscriptions
+      setupRealTimeSubscriptions();
+      
+      console.log('Admin initialization completed successfully');
+    } catch (error) {
+      console.error('Admin initialization failed:', error);
+      toast({
+        title: "Initialization Error",
+        description: "Failed to initialize admin panel. Please refresh the page.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const testDatabaseConnection = async () => {
+    try {
+      console.log('Testing database connection...');
+      setConnectionStatus('checking');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('count')
+        .limit(1);
+        
+      if (error) {
+        console.error('Database connection test failed:', error);
+        setConnectionStatus('error');
+        throw new Error(`Database connection failed: ${error.message}`);
+      }
+      
+      console.log('Database connection test successful');
+      setConnectionStatus('connected');
+    } catch (error) {
+      console.error('Database connection test error:', error);
+      setConnectionStatus('error');
+      throw error;
+    }
+  };
 
   const checkAuth = () => {
     console.log('Checking admin authentication...');
@@ -111,7 +135,7 @@ const Admin = () => {
       if (!userData) {
         console.log('No user data found, redirecting to admin auth');
         navigate('/auth?type=admin');
-        return;
+        return false;
       }
 
       const parsedUser = JSON.parse(userData);
@@ -121,14 +145,16 @@ const Admin = () => {
         console.log('Invalid admin credentials, clearing and redirecting');
         localStorage.removeItem('proposync-user');
         navigate('/auth?type=admin');
-        return;
+        return false;
       }
       
       console.log('Admin authentication successful');
+      return true;
     } catch (error) {
       console.error('Auth check failed:', error);
       localStorage.removeItem('proposync-user');
       navigate('/auth?type=admin');
+      return false;
     }
   };
 
@@ -193,20 +219,7 @@ const Admin = () => {
     setIsLoading(true);
     
     try {
-      // Test Supabase connection first
-      const { data: testData, error: testError } = await supabase
-        .from('submissions')
-        .select('count')
-        .limit(1);
-        
-      if (testError) {
-        console.error('Supabase connection test failed:', testError);
-        throw new Error(`Database connection failed: ${testError.message}`);
-      }
-      
-      console.log('Supabase connection test successful');
-
-      // Load all submissions
+      // Load all submissions with better error handling
       const { data, error } = await supabase
         .from('submissions')
         .select('*')
@@ -280,6 +293,44 @@ const Admin = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const setupRealTimeSubscriptions = () => {
+    console.log('Setting up real-time subscriptions...');
+    
+    // Set up real-time subscription for submissions
+    const submissionsChannel = supabase
+      .channel('submissions-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'submissions'
+      }, (payload) => {
+        console.log('Real-time submission change:', payload);
+        loadSubmissions();
+      })
+      .subscribe();
+
+    // Set up real-time subscription for student registrations
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'profiles'
+      }, (payload) => {
+        console.log('Real-time profile change:', payload);
+        loadStudentCounts();
+        loadStudents();
+      })
+      .subscribe();
+
+    // Cleanup function
+    return () => {
+      console.log('Cleaning up real-time subscriptions...');
+      supabase.removeChannel(submissionsChannel);
+      supabase.removeChannel(profilesChannel);
+    };
   };
 
   const filteredSubmissions = submissions.filter(submission => {
@@ -398,13 +449,37 @@ const Admin = () => {
     }
   };
 
+  const getConnectionStatusColor = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return 'text-green-600';
+      case 'error':
+        return 'text-red-600';
+      default:
+        return 'text-yellow-600';
+    }
+  };
+
+  const getConnectionStatusText = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return 'Database Connected';
+      case 'error':
+        return 'Connection Error';
+      default:
+        return 'Checking Connection...';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
           <p className="text-gray-600 mt-4">Loading admin dashboard...</p>
-          <p className="text-gray-500 text-sm mt-2">Checking database connection...</p>
+          <p className={`text-sm mt-2 ${getConnectionStatusColor()}`}>
+            {getConnectionStatusText()}
+          </p>
         </div>
       </div>
     );
@@ -416,8 +491,8 @@ const Admin = () => {
       <div className="flex items-center justify-between p-4 border-b bg-white">
         <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>
         <div className="flex items-center space-x-4">
-          <div className="text-sm text-gray-600">
-            Real-time Updates Active
+          <div className={`text-sm ${getConnectionStatusColor()}`}>
+            {getConnectionStatusText()}
           </div>
           <button onClick={handleLogout}>
             <LogOut className="h-6 w-6 text-gray-700" />
@@ -756,6 +831,7 @@ const Admin = () => {
                 <Button
                   onClick={sendNotice}
                   className="bg-blue-500 hover:bg-blue-600 text-white"
+                  disabled={!noticeTitle.trim() || !noticeMessage.trim()}
                 >
                   Send Notice
                 </Button>
