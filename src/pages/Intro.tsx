@@ -150,6 +150,9 @@ const Intro = () => {
       {/* Footer */}
       <footer className="relative z-10 text-center py-8 text-gray-500">
         <p>&copy; 2024 PropoSync. Empowering student success.</p>
+        <p className="text-sm mt-2">
+          Developed by <span className="font-medium text-blue-400">Yash Pawar</span>
+        </p>
       </footer>
     </div>
   );

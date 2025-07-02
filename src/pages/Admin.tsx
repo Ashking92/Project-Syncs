@@ -99,16 +99,23 @@ const Admin = () => {
   }, []);
 
   const checkAuth = () => {
-    const userData = localStorage.getItem('proposync-user');
-    if (!userData) {
-      navigate('/auth');
-      return;
-    }
+    try {
+      const userData = localStorage.getItem('proposync-user');
+      if (!userData) {
+        navigate('/auth?type=admin');
+        return;
+      }
 
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.type !== 'admin') {
-      navigate('/auth');
-      return;
+      const parsedUser = JSON.parse(userData);
+      if (parsedUser.type !== 'admin' || !parsedUser.adminCode) {
+        localStorage.removeItem('proposync-user');
+        navigate('/auth?type=admin');
+        return;
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      localStorage.removeItem('proposync-user');
+      navigate('/auth?type=admin');
     }
   };
 
@@ -442,81 +449,88 @@ const Admin = () => {
                             Review
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Project Details</DialogTitle>
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-white/95 backdrop-blur-sm border-2 border-gray-200 shadow-2xl">
+                          <DialogHeader className="border-b border-gray-200 pb-4">
+                            <DialogTitle className="text-xl font-bold text-gray-900">Project Details</DialogTitle>
                           </DialogHeader>
                           {selectedSubmission && (
-                            <div className="space-y-4">
-                              <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                  <strong>Roll Number:</strong> {selectedSubmission.roll_number}
+                            <div className="space-y-6 pt-4">
+                              <div className="bg-gray-50 rounded-lg p-4 grid md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <span className="text-sm font-medium text-gray-500">Roll Number</span>
+                                  <p className="text-gray-900 font-semibold">{selectedSubmission.roll_number}</p>
                                 </div>
-                                <div>
-                                  <strong>Student Name:</strong> {selectedSubmission.student_name}
+                                <div className="space-y-2">
+                                  <span className="text-sm font-medium text-gray-500">Student Name</span>
+                                  <p className="text-gray-900 font-semibold">{selectedSubmission.student_name}</p>
                                 </div>
-                                <div>
-                                  <strong>Team Members:</strong> {selectedSubmission.team_members_count}
+                                <div className="space-y-2">
+                                  <span className="text-sm font-medium text-gray-500">Team Members</span>
+                                  <p className="text-gray-900 font-semibold">{selectedSubmission.team_members_count}</p>
                                 </div>
-                                <div>
-                                  <strong>Estimated Cost:</strong> ₹{selectedSubmission.estimated_cost}
+                                <div className="space-y-2">
+                                  <span className="text-sm font-medium text-gray-500">Estimated Cost</span>
+                                  <p className="text-gray-900 font-semibold">₹{selectedSubmission.estimated_cost}</p>
                                 </div>
                               </div>
                               
-                              <div>
-                                <strong>Project Title:</strong> {selectedSubmission.project_title}
+                              <div className="bg-blue-50 rounded-lg p-4">
+                                <span className="text-sm font-medium text-blue-700">Project Title</span>
+                                <p className="text-blue-900 font-bold text-lg mt-1">{selectedSubmission.project_title}</p>
                               </div>
                               
                               {selectedSubmission.project_description && (
-                                <div>
-                                  <strong>Description:</strong>
-                                  <p className="mt-1 text-gray-700">{selectedSubmission.project_description}</p>
+                                <div className="bg-green-50 rounded-lg p-4">
+                                  <span className="text-sm font-medium text-green-700">Description</span>
+                                  <p className="mt-2 text-green-900 leading-relaxed">{selectedSubmission.project_description}</p>
                                 </div>
                               )}
                               
-                              <div>
-                                <strong>Technologies:</strong> {selectedSubmission.technologies}
+                              <div className="bg-purple-50 rounded-lg p-4">
+                                <span className="text-sm font-medium text-purple-700">Technologies</span>
+                                <p className="mt-2 text-purple-900 font-medium">{selectedSubmission.technologies}</p>
                               </div>
                               
-                              <div>
-                                <strong>Team Members:</strong>
-                                <p className="mt-1 text-gray-700">{selectedSubmission.team_members}</p>
+                              <div className="bg-orange-50 rounded-lg p-4">
+                                <span className="text-sm font-medium text-orange-700">Team Members</span>
+                                <p className="mt-2 text-orange-900 leading-relaxed">{selectedSubmission.team_members}</p>
                               </div>
                               
                               {selectedSubmission.software_requirements && (
-                                <div>
-                                  <strong>Software Requirements:</strong>
-                                  <p className="mt-1 text-gray-700">{selectedSubmission.software_requirements}</p>
+                                <div className="bg-indigo-50 rounded-lg p-4">
+                                  <span className="text-sm font-medium text-indigo-700">Software Requirements</span>
+                                  <p className="mt-2 text-indigo-900 leading-relaxed">{selectedSubmission.software_requirements}</p>
                                 </div>
                               )}
                               
                               {selectedSubmission.hardware_requirements && (
-                                <div>
-                                  <strong>Hardware Requirements:</strong>
-                                  <p className="mt-1 text-gray-700">{selectedSubmission.hardware_requirements}</p>
+                                <div className="bg-red-50 rounded-lg p-4">
+                                  <span className="text-sm font-medium text-red-700">Hardware Requirements</span>
+                                  <p className="mt-2 text-red-900 leading-relaxed">{selectedSubmission.hardware_requirements}</p>
                                 </div>
                               )}
                               
-                              <div>
-                                <strong>Submitted:</strong> {new Date(selectedSubmission.submitted_at).toLocaleString()}
+                              <div className="bg-gray-100 rounded-lg p-4">
+                                <span className="text-sm font-medium text-gray-600">Submission Date</span>
+                                <p className="text-gray-900 font-medium mt-1">{new Date(selectedSubmission.submitted_at).toLocaleString()}</p>
                               </div>
                               
-                              <div className="flex space-x-2 pt-4">
+                              <div className="flex space-x-3 pt-6 border-t border-gray-200">
                                 <Button
                                   onClick={() => updateSubmissionStatus(selectedSubmission.id, 'approved')}
-                                  className="bg-green-500 hover:bg-green-600 text-white"
+                                  className="flex-1 bg-green-600 hover:bg-green-700 text-white h-12 rounded-lg font-medium"
                                   disabled={selectedSubmission.status === 'approved'}
                                 >
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Approve
+                                  <CheckCircle className="h-5 w-5 mr-2" />
+                                  Approve Project
                                 </Button>
                                 <Button
                                   onClick={() => updateSubmissionStatus(selectedSubmission.id, 'rejected')}
-                                  className="bg-red-500 hover:bg-red-600 text-white"
+                                  className="flex-1 bg-red-600 hover:bg-red-700 text-white h-12 rounded-lg font-medium"
                                   disabled={selectedSubmission.status === 'rejected'}
                                 >
-                                  <XCircle className="h-4 w-4 mr-2" />
-                                  Reject
+                                  <XCircle className="h-5 w-5 mr-2" />
+                                  Reject Project
                                 </Button>
                               </div>
                             </div>
@@ -648,6 +662,13 @@ const Admin = () => {
             </div>
           </>
         )}
+        
+        {/* Footer */}
+        <footer className="bg-white border-t border-gray-200 py-6 px-4 text-center mt-8">
+          <p className="text-sm text-gray-500">
+            Developed by <span className="font-medium text-blue-600">Yash Pawar</span>
+          </p>
+        </footer>
       </div>
     </div>
   );

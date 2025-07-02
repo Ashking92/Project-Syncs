@@ -90,20 +90,27 @@ const StudentDashboard = () => {
   }, [profile, user]);
 
   const checkAuth = () => {
-    const userData = localStorage.getItem('proposync-user');
-    if (!userData) {
-      navigate('/auth');
-      return;
-    }
+    try {
+      const userData = localStorage.getItem('proposync-user');
+      if (!userData) {
+        navigate('/auth?type=student');
+        return;
+      }
 
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.type !== 'student') {
-      navigate('/auth');
-      return;
-    }
+      const parsedUser = JSON.parse(userData);
+      if (parsedUser.type !== 'student' || !parsedUser.rollNumber) {
+        localStorage.removeItem('proposync-user');
+        navigate('/auth?type=student');
+        return;
+      }
 
-    setUser(parsedUser);
-    loadProfile(parsedUser.rollNumber);
+      setUser(parsedUser);
+      loadProfile(parsedUser.rollNumber);
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      localStorage.removeItem('proposync-user');
+      navigate('/auth?type=student');
+    }
   };
 
   const loadProfile = async (rollNumber: string) => {
@@ -527,66 +534,33 @@ const StudentDashboard = () => {
     </div>
   );
 
-  if (activeTab === 'profile') {
-    return renderProfileTab();
-  }
-
-  if (activeTab === 'projects') {
-    return renderProjectsTab();
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-white">
-        <h1 className="text-xl font-semibold text-gray-900">Student Dashboard</h1>
-        <div className="flex items-center space-x-4">
-          <NoticesPanel />
-          <button onClick={handleLogout}>
-            <LogOut className="h-6 w-6 text-gray-700" />
-          </button>
+  // Handle different tab states
+  switch (activeTab) {
+    case 'profile':
+      return (
+        <div>
+          {renderProfileTab()}
+          <footer className="bg-white border-t border-gray-200 py-4 px-4 text-center">
+            <p className="text-sm text-gray-500">
+              Developed by <span className="font-medium text-blue-600">Yash Pawar</span>
+            </p>
+          </footer>
         </div>
-      </div>
-      
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="flex justify-around py-2">
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center py-2 px-4 ${
-              activeTab === 'home' ? 'text-blue-500' : 'text-gray-500'
-            }`}
-          >
-            <Home className="h-6 w-6" />
-            <span className="text-xs mt-1">Home</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('projects')}
-            className={`flex flex-col items-center py-2 px-4 relative ${
-              activeTab === 'projects' ? 'text-blue-500' : 'text-gray-500'
-            }`}
-          >
-            <Folder className="h-6 w-6" />
-            <span className="text-xs mt-1">Projects</span>
-            {hasNewNotification && (
-              <div className="absolute top-1 right-3 w-2 h-2 bg-red-500 rounded-full"></div>
-            )}
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`flex flex-col items-center py-2 px-4 ${
-              activeTab === 'profile' ? 'text-blue-500' : 'text-gray-500'
-            }`}
-          >
-            <Settings className="h-6 w-6" />
-            <span className="text-xs mt-1">Settings</span>
-          </button>
+      );
+    case 'projects':
+      return (
+        <div>
+          {renderProjectsTab()}
+          <footer className="bg-white border-t border-gray-200 py-4 px-4 text-center">
+            <p className="text-sm text-gray-500">
+              Developed by <span className="font-medium text-blue-600">Yash Pawar</span>
+            </p>
+          </footer>
         </div>
-      </div>
-    </div>
-  );
+      );
+    default:
+      return renderHomeTab();
+  }
 };
 
 export default StudentDashboard;
