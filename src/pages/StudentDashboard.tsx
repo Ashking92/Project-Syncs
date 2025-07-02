@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Edit, Home, Folder, Settings, LogOut, Menu, Bell, CheckCircle, Clock, XCircle, Lightbulb } from "lucide-react";
+import { ArrowLeft, User, Edit, Home, Folder, Settings, LogOut, Menu, Bell, CheckCircle, Clock, XCircle, Lightbulb, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import NoticesPanel from "@/components/NoticesPanel";
 import ProjectIdeas from "@/components/ProjectIdeas";
+import InstallGuide from "@/components/InstallGuide";
+import DeviceRestrictionModal from "@/components/DeviceRestrictionModal";
+import useDeviceRestriction from "@/hooks/useDeviceRestriction";
 
 interface StudentProfile {
   id: string;
@@ -41,6 +44,11 @@ const StudentDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [hasNewNotification, setHasNewNotification] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
+  
+  // Device restriction hook
+  const { isDeviceAllowed, deviceInfo, isLoading: deviceLoading } = useDeviceRestriction(user?.rollNumber || null);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -49,18 +57,46 @@ const StudentDashboard = () => {
     photo_url: ""
   });
 
+  // Check if app is running as PWA
   useEffect(() => {
-    if (!authLoading) {
+    const checkPWA = () => {
+      const isPWAMode = window.matchMedia('(display-mode: standalone)').matches ||
+                       (window.navigator as any).standalone ||
+                       document.referrer.includes('android-app://');
+      setIsPWA(isPWAMode);
+      
+      // Show install guide for new users who haven't installed PWA
+      const hasSeenInstallGuide = localStorage.getItem('seen-install-guide');
+      if (!isPWAMode && !hasSeenInstallGuide && user?.rollNumber) {
+        setShowInstallGuide(true);
+      }
+    };
+
+    checkPWA();
+  }, [user]);
+
+  // Handle device restriction
+  useEffect(() => {
+    if (!deviceLoading && isDeviceAllowed === false) {
+      // Device not allowed, show restriction modal
+      return;
+    }
+  }, [deviceLoading, isDeviceAllowed]);
+
+  useEffect(() => {
+    if (!authLoading && !deviceLoading) {
       if (!user || user.type !== 'student' || !user.rollNumber) {
         navigate('/auth?type=student');
         return;
       }
-      loadProfile(user.rollNumber);
+      if (isDeviceAllowed === true) {
+        loadProfile(user.rollNumber);
+      }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, deviceLoading, isDeviceAllowed, navigate]);
 
   useEffect(() => {
-    if (profile && user) {
+    if (profile && user && isDeviceAllowed) {
       loadSubmissions();
       
       // Set up real-time subscription for submissions
@@ -95,7 +131,7 @@ const StudentDashboard = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [profile, user]);
+  }, [profile, user, isDeviceAllowed]);
 
   const loadProfile = async (rollNumber: string) => {
     try {
@@ -131,6 +167,7 @@ const StudentDashboard = () => {
     if (!user?.rollNumber) return;
 
     try {
+      console.log('Loading submissions for:', user.rollNumber);
       const { data, error } = await supabase
         .from('submissions')
         .select('*')
@@ -144,10 +181,25 @@ const StudentDashboard = () => {
         status: item.status as 'pending' | 'approved' | 'rejected'
       }));
       
+      console.log('Loaded submissions:', typedData);
       setSubmissions(typedData);
     } catch (error) {
       console.error('Error loading submissions:', error);
+      toast({
+        title: "Error loading projects",
+        description: "Could not load your project submissions",
+        variant: "destructive",
+      });
     }
+  };
+
+  const handleCloseInstallGuide = () => {
+    setShowInstallGuide(false);
+    localStorage.setItem('seen-install-guide', 'true');
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,18 +266,26 @@ const StudentDashboard = () => {
     }
   };
 
-  const renderProjectIdeasTab = () => <ProjectIdeas />;
+  // Show device restriction modal if device is not allowed
+  if (!deviceLoading && isDeviceAllowed === false) {
+    return <DeviceRestrictionModal deviceInfo={deviceInfo} onLogout={handleLogout} />;
+  }
 
-  if (authLoading || (isLoading && !profile)) {
+  // Show loading if auth or device check is in progress
+  if (authLoading || deviceLoading || (isLoading && !profile)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading your dashboard...</p>
+          <p className="text-gray-600 mt-4">
+            {deviceLoading ? 'Checking device authorization...' : 'Loading your dashboard...'}
+          </p>
         </div>
       </div>
     );
   }
+
+  const renderProjectIdeasTab = () => <ProjectIdeas />;
 
   const renderProfileTab = () => (
     <div className="min-h-screen bg-gray-50">
@@ -423,8 +483,14 @@ const StudentDashboard = () => {
         <div className="flex items-center">
           <Menu className="h-6 w-6 text-gray-700 mr-3" />
           <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
+          {isPWA && <Badge className="ml-2 bg-green-100 text-green-800 text-xs">PWA</Badge>}
         </div>
         <div className="flex items-center space-x-3">
+          {!isPWA && (
+            <button onClick={() => setShowInstallGuide(true)}>
+              <Download className="h-6 w-6 text-blue-500" />
+            </button>
+          )}
           <div className="relative">
             <Bell 
               className={`h-6 w-6 cursor-pointer ${hasNewNotification ? 'text-red-500' : 'text-gray-700'}`}
@@ -458,6 +524,11 @@ const StudentDashboard = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900">{profile?.name || 'Student'}</h2>
           <p className="text-gray-600">Student ID: {user?.rollNumber}</p>
+          {isPWA && (
+            <Badge className="mt-2 bg-green-100 text-green-800">
+              App Mode Active ✓
+            </Badge>
+          )}
         </div>
 
         <div className="space-y-4 mb-6">
@@ -524,6 +595,9 @@ const StudentDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Install Guide Modal */}
+      {showInstallGuide && <InstallGuide onClose={handleCloseInstallGuide} />}
     </div>
   );
 
