@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Edit, Home, Folder, Settings, LogOut, Menu, Bell, CheckCircle, Clock, XCircle } from "lucide-react";
+import { ArrowLeft, User, Edit, Home, Folder, Settings, LogOut, Menu, Bell, CheckCircle, Clock, XCircle, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import NoticesPanel from "@/components/NoticesPanel";
+import ProjectIdeas from "@/components/ProjectIdeas";
 
 interface StudentProfile {
   id: string;
@@ -212,6 +213,8 @@ const StudentDashboard = () => {
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
     }
   };
+
+  const renderProjectIdeasTab = () => <ProjectIdeas />;
 
   if (authLoading || (isLoading && !profile)) {
     return (
@@ -490,24 +493,36 @@ const StudentDashboard = () => {
           </Card>
         </div>
 
-        {profile?.name && profile?.phone_number && profile?.email && (
-          <Button
-            onClick={() => navigate('/submit')}
-            className="w-full h-12 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium text-base mb-6"
-          >
-            Submit New Project
-          </Button>
-        )}
+        {/* Quick Action Buttons */}
+        <div className="space-y-3 mb-6">
+          {profile?.name && profile?.phone_number && profile?.email && (
+            <Button
+              onClick={() => navigate('/submit')}
+              className="w-full h-12 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium text-base"
+            >
+              Submit New Project
+            </Button>
+          )}
 
-        {submissions.length > 0 && (
           <Button
-            onClick={() => setActiveTab('projects')}
+            onClick={() => setActiveTab('project-ideas')}
             variant="outline"
-            className="w-full h-12 rounded-xl border-gray-200 text-gray-700 font-medium text-base"
+            className="w-full h-12 rounded-xl border-gray-200 text-gray-700 font-medium text-base flex items-center justify-center space-x-2"
           >
-            View All Projects
+            <Lightbulb className="h-5 w-5 text-yellow-500" />
+            <span>Explore Project Ideas</span>
           </Button>
-        )}
+
+          {submissions.length > 0 && (
+            <Button
+              onClick={() => setActiveTab('projects')}
+              variant="outline"
+              className="w-full h-12 rounded-xl border-gray-200 text-gray-700 font-medium text-base"
+            >
+              View All Projects
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -529,6 +544,17 @@ const StudentDashboard = () => {
       return (
         <div>
           {renderProjectsTab()}
+          <footer className="bg-white border-t border-gray-200 py-4 px-4 text-center">
+            <p className="text-sm text-gray-500">
+              Developed by <span className="font-medium text-blue-600">Yash Pawar</span>
+            </p>
+          </footer>
+        </div>
+      );
+    case 'project-ideas':
+      return (
+        <div>
+          {renderProjectIdeasTab()}
           <footer className="bg-white border-t border-gray-200 py-4 px-4 text-center">
             <p className="text-sm text-gray-500">
               Developed by <span className="font-medium text-blue-600">Yash Pawar</span>
