@@ -11,7 +11,6 @@ import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
 import NotFound from "./pages/NotFound";
-import Intro from "./pages/Intro";
 import Welcome from "./pages/Welcome";
 
 const queryClient = new QueryClient();
@@ -25,8 +24,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/welcome" element={<Welcome />} />
-            <Route path="/" element={<Intro />} />
-            <Route path="/home" element={<Home />} />
+            <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/student-dashboard" element={<StudentDashboard />} />
             <Route path="/submit" element={<Submit />} />
