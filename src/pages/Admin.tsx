@@ -63,6 +63,7 @@ const Admin = () => {
   const [targetRollNumber, setTargetRollNumber] = useState('');
 
   useEffect(() => {
+    console.log('Admin component mounted, starting initialization...');
     checkAuth();
     loadSubmissions();
     loadStudentCounts();
@@ -75,7 +76,8 @@ const Admin = () => {
         event: '*',
         schema: 'public',
         table: 'submissions'
-      }, () => {
+      }, (payload) => {
+        console.log('Real-time submission change:', payload);
         loadSubmissions();
       })
       .subscribe();
@@ -87,31 +89,42 @@ const Admin = () => {
         event: '*',
         schema: 'public',
         table: 'profiles'
-      }, () => {
+      }, (payload) => {
+        console.log('Real-time profile change:', payload);
         loadStudentCounts();
       })
       .subscribe();
 
     return () => {
+      console.log('Cleaning up real-time subscriptions...');
       supabase.removeChannel(submissionsChannel);
       supabase.removeChannel(profilesChannel);
     };
   }, []);
 
   const checkAuth = () => {
+    console.log('Checking admin authentication...');
     try {
       const userData = localStorage.getItem('proposync-user');
+      console.log('User data from localStorage:', userData);
+      
       if (!userData) {
+        console.log('No user data found, redirecting to admin auth');
         navigate('/auth?type=admin');
         return;
       }
 
       const parsedUser = JSON.parse(userData);
+      console.log('Parsed user data:', parsedUser);
+      
       if (parsedUser.type !== 'admin' || !parsedUser.adminCode) {
+        console.log('Invalid admin credentials, clearing and redirecting');
         localStorage.removeItem('proposync-user');
         navigate('/auth?type=admin');
         return;
       }
+      
+      console.log('Admin authentication successful');
     } catch (error) {
       console.error('Auth check failed:', error);
       localStorage.removeItem('proposync-user');
@@ -120,13 +133,19 @@ const Admin = () => {
   };
 
   const loadStudentCounts = async () => {
+    console.log('Loading student counts...');
     try {
       // Get total student count
       const { count: totalCount, error: totalError } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
 
-      if (totalError) throw totalError;
+      if (totalError) {
+        console.error('Error loading total student count:', totalError);
+        throw totalError;
+      }
+      
+      console.log('Total students:', totalCount);
       setStudentCount(totalCount || 0);
 
       // Get CS students count (D234101-D234160)
@@ -136,7 +155,12 @@ const Admin = () => {
         .gte('roll_number', 'D234101')
         .lte('roll_number', 'D234160');
 
-      if (csError) throw csError;
+      if (csError) {
+        console.error('Error loading CS student count:', csError);
+        throw csError;
+      }
+      
+      console.log('CS students:', csCount);
       setCsStudents(csCount || 0);
 
       // Get IT students count (D235101-D235130)
@@ -146,51 +170,115 @@ const Admin = () => {
         .gte('roll_number', 'D235101')
         .lte('roll_number', 'D235130');
 
-      if (itError) throw itError;
+      if (itError) {
+        console.error('Error loading IT student count:', itError);
+        throw itError;
+      }
+      
+      console.log('IT students:', itCount);
       setItStudents(itCount || 0);
 
     } catch (error) {
       console.error('Error loading student counts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load student statistics",
+        variant: "destructive",
+      });
     }
   };
 
   const loadSubmissions = async () => {
+    console.log('Loading submissions...');
+    setIsLoading(true);
+    
     try {
+      // Test Supabase connection first
+      const { data: testData, error: testError } = await supabase
+        .from('submissions')
+        .select('count')
+        .limit(1);
+        
+      if (testError) {
+        console.error('Supabase connection test failed:', testError);
+        throw new Error(`Database connection failed: ${testError.message}`);
+      }
+      
+      console.log('Supabase connection test successful');
+
+      // Load all submissions
       const { data, error } = await supabase
         .from('submissions')
         .select('*')
         .order('submitted_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading submissions:', error);
+        throw new Error(`Failed to load submissions: ${error.message}`);
+      }
+
+      console.log('Raw submissions data:', data);
+      
+      if (!data) {
+        console.log('No submissions data returned');
+        setSubmissions([]);
+        return;
+      }
+
       // Type assertion to ensure status field matches our interface
-      const typedData = (data || []).map(item => ({
-        ...item,
-        status: item.status as 'pending' | 'approved' | 'rejected'
-      }));
+      const typedData = data.map(item => {
+        console.log('Processing submission:', item.id, 'Status:', item.status);
+        return {
+          ...item,
+          status: item.status as 'pending' | 'approved' | 'rejected'
+        };
+      });
+      
+      console.log('Processed submissions:', typedData.length, 'items');
       setSubmissions(typedData);
+      
+      toast({
+        title: "Success",
+        description: `Loaded ${typedData.length} submissions successfully`,
+      });
+      
     } catch (error) {
-      console.error('Error loading submissions:', error);
+      console.error('Detailed error loading submissions:', error);
       toast({
         title: "Error",
-        description: "Failed to load submissions",
+        description: error instanceof Error ? error.message : "Failed to load submissions",
         variant: "destructive",
       });
+      
+      // Set empty array to prevent UI errors
+      setSubmissions([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const loadStudents = async () => {
+    console.log('Loading students...');
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading students:', error);
+        throw error;
+      }
+      
+      console.log('Students loaded:', data?.length || 0);
       setStudents(data || []);
     } catch (error) {
       console.error('Error loading students:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load student data",
+        variant: "destructive",
+      });
     }
   };
 
@@ -205,18 +293,23 @@ const Admin = () => {
   });
 
   const updateSubmissionStatus = async (id: string, status: 'pending' | 'approved' | 'rejected', remarks: string = '') => {
+    console.log('Updating submission status:', id, 'to', status);
     try {
       const { error } = await supabase
         .from('submissions')
         .update({ status, remarks })
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating submission status:', error);
+        throw error;
+      }
 
       setSubmissions(prev => prev.map(sub =>
         sub.id === id ? { ...sub, status, remarks } : sub
       ));
       
+      console.log('Submission status updated successfully');
       toast({
         title: `Project ${status}!`,
         description: `The project has been ${status} successfully.`,
@@ -243,11 +336,14 @@ const Admin = () => {
   };
 
   const handleLogout = () => {
+    console.log('Admin logout initiated');
     localStorage.removeItem('proposync-user');
     navigate('/auth');
   };
 
   const sendNotice = async () => {
+    console.log('Sending notice:', noticeTitle, 'to', targetType);
+    
     if (!noticeTitle.trim() || !noticeMessage.trim()) {
       toast({
         title: "Error",
@@ -276,8 +372,12 @@ const Admin = () => {
           target_roll_number: targetType === 'individual' ? targetRollNumber : null
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending notice:', error);
+        throw error;
+      }
 
+      console.log('Notice sent successfully');
       toast({
         title: "Notice Sent!",
         description: `Notice sent to ${targetType === 'all' ? 'all students' : targetRollNumber}`,
@@ -304,6 +404,7 @@ const Admin = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
           <p className="text-gray-600 mt-4">Loading admin dashboard...</p>
+          <p className="text-gray-500 text-sm mt-2">Checking database connection...</p>
         </div>
       </div>
     );
