@@ -3,59 +3,55 @@ import { useState, useEffect, useCallback } from 'react';
 
 export const useZoom = () => {
   const [scale, setScale] = useState(1);
-  const [isZooming, setIsZooming] = useState(false);
 
+  // Disable all zoom functionality
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (e.touches.length === 2) {
-      setIsZooming(true);
+      e.preventDefault();
     }
   }, []);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (e.touches.length === 2 && isZooming) {
+    if (e.touches.length === 2) {
       e.preventDefault();
-      
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      
-      const distance = Math.sqrt(
-        Math.pow(touch2.clientX - touch1.clientX, 2) + 
-        Math.pow(touch2.clientY - touch1.clientY, 2)
-      );
-      
-      // Simple zoom calculation based on touch distance
-      const newScale = Math.min(Math.max(distance / 200, 0.5), 3);
-      setScale(newScale);
     }
-  }, [isZooming]);
+  }, []);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
-    if (e.touches.length < 2) {
-      setIsZooming(false);
-    }
+    e.preventDefault();
   }, []);
 
   const handleWheel = useCallback((e: WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setScale(prevScale => Math.min(Math.max(prevScale + delta, 0.5), 3));
+    // Prevent zoom via mouse wheel
+    if (e.ctrlKey) {
+      e.preventDefault();
+    }
   }, []);
 
   useEffect(() => {
+    // Add event listeners to prevent zoom
     document.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleTouchEnd, { passive: false });
     document.addEventListener('wheel', handleWheel, { passive: false });
+
+    // Prevent pinch zoom with CSS
+    document.body.style.touchAction = 'pan-x pan-y';
+    document.documentElement.style.touchAction = 'pan-x pan-y';
 
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('wheel', handleWheel);
+      
+      // Reset touch action
+      document.body.style.touchAction = '';
+      document.documentElement.style.touchAction = '';
     };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd, handleWheel]);
 
   const resetZoom = () => setScale(1);
 
-  return { scale, resetZoom };
+  return { scale: 1, resetZoom }; // Always return scale as 1
 };

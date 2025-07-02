@@ -17,16 +17,18 @@ import Welcome from "./pages/Welcome";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { scale } = useZoom();
+  // Initialize zoom hook but don't use the scale
+  useZoom();
 
   return (
     <div 
       style={{ 
-        transform: `scale(${scale})`,
-        transformOrigin: 'center center',
-        transition: 'transform 0.1s ease-out',
         minHeight: '100vh',
-        width: '100%'
+        width: '100%',
+        touchAction: 'pan-x pan-y', // Prevent zoom gestures
+        userSelect: 'none', // Prevent text selection on mobile
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none'
       }}
     >
       <Routes>

@@ -44,6 +44,7 @@ const StudentDashboard = () => {
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -148,14 +149,19 @@ const StudentDashboard = () => {
 
   const loadProfile = async (rollNumber: string) => {
     try {
+      console.log('Loading profile for roll number:', rollNumber);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('roll_number', rollNumber)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading profile:', error);
+        throw error;
+      }
 
+      console.log('Profile loaded successfully:', data);
       setProfile(data);
       setFormData({
         name: data.name || "",
@@ -170,39 +176,62 @@ const StudentDashboard = () => {
         setActiveTab('profile');
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error('Profile loading error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const loadSubmissions = async () => {
-    if (!user?.rollNumber) return;
+    if (!user?.rollNumber) {
+      console.log('No roll number available for loading submissions');
+      return;
+    }
 
+    setSubmissionsLoading(true);
     try {
-      console.log('Loading submissions for:', user.rollNumber);
+      console.log('Loading submissions for roll number:', user.rollNumber);
+      
       const { data, error } = await supabase
         .from('submissions')
         .select('*')
         .eq('roll_number', user.rollNumber)
         .order('submitted_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Submissions query error:', error);
+        throw error;
+      }
 
-      const typedData = (data || []).map(item => ({
+      if (!data) {
+        console.log('No submissions data returned');
+        setSubmissions([]);
+        return;
+      }
+
+      const typedData = data.map(item => ({
         ...item,
         status: item.status as 'pending' | 'approved' | 'rejected'
       }));
       
-      console.log('Loaded submissions:', typedData);
+      console.log('Submissions loaded successfully:', typedData.length, 'submissions');
       setSubmissions(typedData);
+      
     } catch (error) {
       console.error('Error loading submissions:', error);
       toast({
-        title: "Error loading projects",
-        description: "Could not load your project submissions",
+        title: "Error",
+        description: "Failed to load your project submissions. Please refresh the page.",
         variant: "destructive",
       });
+      setSubmissions([]);
+    } finally {
+      setSubmissionsLoading(false);
     }
   };
 
@@ -254,28 +283,6 @@ const StudentDashboard = () => {
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'rejected':
-        return <XCircle className="h-5 w-5 text-red-600" />;
-      default:
-        return <Clock className="h-5 w-5 text-yellow-600" />;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
-      default:
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
     }
   };
 
@@ -419,16 +426,26 @@ const StudentDashboard = () => {
           </button>
           <h1 className="text-xl font-semibold text-gray-900">My Projects</h1>
         </div>
-        <div className="relative">
-          <Bell className={`h-6 w-6 ${hasNewNotification ? 'text-red-500' : 'text-gray-700'}`} />
-          {hasNewNotification && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-          )}
+        <div className="flex items-center space-x-2">
+          <button onClick={loadSubmissions} disabled={submissionsLoading}>
+            <div className={`animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 ${submissionsLoading ? '' : 'hidden'}`}></div>
+          </button>
+          <div className="relative">
+            <Bell className={`h-6 w-6 ${hasNewNotification ? 'text-red-500' : 'text-gray-700'}`} />
+            {hasNewNotification && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="p-4">
-        {submissions.length === 0 ? (
+        {submissionsLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your projects...</p>
+          </div>
+        ) : submissions.length === 0 ? (
           <div className="text-center py-12">
             <Folder className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 mb-4">No projects submitted yet</p>
@@ -477,6 +494,17 @@ const StudentDashboard = () => {
                 </CardContent>
               </Card>
             ))}
+            
+            <div className="text-center pt-4">
+              <Button
+                onClick={loadSubmissions}
+                variant="outline"
+                disabled={submissionsLoading}
+                className="rounded-xl"
+              >
+                {submissionsLoading ? 'Refreshing...' : 'Refresh Projects'}
+              </Button>
+            </div>
           </div>
         )}
       </div>

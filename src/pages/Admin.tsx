@@ -17,6 +17,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import StudentManagement from "@/components/StudentManagement";
 
 interface Submission {
   id: string;
@@ -51,6 +52,7 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [filter, setFilter] = useState('All');
   const [studentCount, setStudentCount] = useState(0);
   const [csStudents, setCsStudents] = useState(0);
@@ -216,7 +218,7 @@ const Admin = () => {
 
   const loadSubmissions = async () => {
     console.log('Loading submissions...');
-    setIsLoading(true);
+    setSubmissionsLoading(true);
     
     try {
       // Load all submissions with better error handling
@@ -266,6 +268,7 @@ const Admin = () => {
       // Set empty array to prevent UI errors
       setSubmissions([]);
     } finally {
+      setSubmissionsLoading(false);
       setIsLoading(false);
     }
   };
@@ -545,7 +548,7 @@ const Admin = () => {
 
         {/* Tab Navigation */}
         <div className="flex space-x-2 mb-6">
-          {['submissions', 'students', 'notices'].map((tab) => (
+          {['submissions', 'students', 'student-management', 'notices'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -555,7 +558,7 @@ const Admin = () => {
                   : 'bg-gray-200 text-gray-700'
               }`}
             >
-              {tab}
+              {tab.replace('-', ' ')}
             </button>
           ))}
         </div>
@@ -563,7 +566,17 @@ const Admin = () => {
         {/* Submissions Tab */}
         {activeTab === 'submissions' && (
           <>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Submissions ({submissions.length})</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Project Submissions ({submissions.length})</h2>
+              <Button
+                onClick={loadSubmissions}
+                disabled={submissionsLoading}
+                variant="outline"
+                className="rounded-xl"
+              >
+                {submissionsLoading ? 'Refreshing...' : 'Refresh Data'}
+              </Button>
+            </div>
 
             {/* Search */}
             <div className="relative mb-4">
@@ -595,7 +608,12 @@ const Admin = () => {
 
             {/* Submissions List */}
             <div className="space-y-4">
-              {filteredSubmissions.length === 0 ? (
+              {submissionsLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading submissions...</p>
+                </div>
+              ) : filteredSubmissions.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-gray-500">No submissions found</p>
                 </div>
@@ -757,6 +775,9 @@ const Admin = () => {
             </div>
           </>
         )}
+
+        {/* Student Management Tab */}
+        {activeTab === 'student-management' && <StudentManagement />}
 
         {/* Notices Tab */}
         {activeTab === 'notices' && (
