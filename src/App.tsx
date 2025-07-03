@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { useZoom } from "@/hooks/useZoom";
 import Home from "./pages/Home";
 import Submit from "./pages/Submit";
 import Admin from "./pages/Admin";
@@ -17,16 +16,13 @@ import Welcome from "./pages/Welcome";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  // Initialize zoom hook but don't use the scale
-  useZoom();
-
   return (
     <div 
       style={{ 
         minHeight: '100vh',
         width: '100%',
-        touchAction: 'pan-x pan-y', // Prevent zoom gestures
-        userSelect: 'none', // Prevent text selection on mobile
+        touchAction: 'pan-x pan-y',
+        userSelect: 'none',
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none'
       }}
@@ -45,17 +41,17 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
         <AuthProvider>
           <AppContent />
         </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
 );
 
 export default App;

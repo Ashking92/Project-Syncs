@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, User, Shield, GraduationCap, UserCheck } from "lucide-react";
@@ -8,52 +9,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [searchParams] = useSearchParams();
   const [userType, setUserType] = useState(searchParams.get('type') || 'student');
   const [rollNumber, setRollNumber] = useState("");
   const [department, setDepartment] = useState("");
   const [adminCode, setAdminCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    // Check if user is already authenticated
-    const checkAuthState = async () => {
-      try {
-        const userData = localStorage.getItem('proposync-user');
-        if (userData) {
-          const parsedUser = JSON.parse(userData);
-          
-          // Verify the stored data is still valid
-          if (parsedUser.type === 'student' && parsedUser.rollNumber) {
-            // For students, verify profile still exists
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('roll_number', parsedUser.rollNumber)
-              .single();
-            
-            if (profile) {
-              navigate('/student-dashboard');
-              return;
-            }
-          } else if (parsedUser.type === 'admin' && parsedUser.adminCode) {
-            navigate('/admin');
-            return;
-          }
-        }
-      } catch (error) {
-        console.log('Auth check error:', error);
-        // Clear invalid auth data
-        localStorage.removeItem('proposync-user');
-      }
-    };
-
-    checkAuthState();
-  }, [navigate]);
 
   const validateRollNumber = (rollNum: string, dept: string) => {
     const numericPart = parseInt(rollNum.substring(1));
@@ -92,7 +59,6 @@ const Auth = () => {
     }
 
     try {
-      // Check if profile exists, if not create one
       let { data: profile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
@@ -117,9 +83,8 @@ const Auth = () => {
         profile = newProfile;
       }
 
-      // Store user data with timestamp for persistence
       const userData = {
-        type: 'student',
+        type: 'student' as const,
         rollNumber: rollNumber,
         department: department,
         profileId: profile.id,
@@ -127,21 +92,22 @@ const Auth = () => {
         persistentLogin: true
       };
 
-      localStorage.setItem('proposync-user', JSON.stringify(userData));
-      
-      // Also store in sessionStorage as backup
-      sessionStorage.setItem('proposync-user-backup', JSON.stringify(userData));
+      login(userData);
 
       toast({
         title: "Login Successful! 🎉",
         description: `Welcome ${department} student ${rollNumber}`,
       });
 
-      navigate('/student-dashboard');
+      setTimeout(() => {
+        navigate('/student-dashboard');
+      }, 500);
+
     } catch (error: any) {
+      console.error('Student login error:', error);
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: error.message || "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -163,25 +129,24 @@ const Auth = () => {
       return;
     }
 
-    // Store admin data with persistence
     const adminData = {
-      type: 'admin',
+      type: 'admin' as const,
       adminCode: adminCode,
       loginTime: new Date().toISOString(),
       persistentLogin: true
     };
 
-    localStorage.setItem('proposync-user', JSON.stringify(adminData));
-    
-    // Also store in sessionStorage as backup
-    sessionStorage.setItem('proposync-user-backup', JSON.stringify(adminData));
+    login(adminData);
 
     toast({
       title: "Admin Login Successful! 🎉",
       description: "Welcome Admin",
     });
 
-    navigate('/admin');
+    setTimeout(() => {
+      navigate('/admin');
+    }, 500);
+
     setIsLoading(false);
   };
 
