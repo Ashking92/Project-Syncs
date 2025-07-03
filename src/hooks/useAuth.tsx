@@ -17,6 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
   logout: () => void;
   checkAuth: () => void;
+  login: (userData: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +26,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  const login = (userData: AuthUser) => {
+    console.log('AuthProvider: Login initiated with:', userData);
+    try {
+      // Store in both localStorage and sessionStorage for better persistence
+      const userDataString = JSON.stringify(userData);
+      localStorage.setItem('proposync-user', userDataString);
+      sessionStorage.setItem('proposync-user-backup', userDataString);
+      
+      setUser(userData);
+      console.log('AuthProvider: Login successful, user set');
+    } catch (error) {
+      console.error('AuthProvider: Login error:', error);
+    }
+  };
 
   const checkAuth = () => {
     console.log('AuthProvider: Checking authentication...');
@@ -108,19 +124,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       checkAuth();
     };
 
+    // Listen for page refresh
+    const handleBeforeUnload = () => {
+      console.log('AuthProvider: Page unloading, backing up auth data');
+      const userData = localStorage.getItem('proposync-user');
+      if (userData) {
+        sessionStorage.setItem('proposync-user-backup', userData);
+      }
+    };
+
     window.addEventListener('storage', handleStorageChange);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, isLoading, logout, checkAuth, login }}>
       {children}
     </AuthContext.Provider>
   );

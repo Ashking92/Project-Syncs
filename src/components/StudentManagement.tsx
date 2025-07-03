@@ -47,19 +47,24 @@ const StudentManagement = () => {
   const loadStudents = async () => {
     setIsLoading(true);
     try {
+      console.log('Loading students from database...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading students:', error);
+        throw error;
+      }
       
+      console.log('Students loaded successfully:', data?.length || 0, 'students');
       setStudents(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading students:', error);
       toast({
         title: "Error",
-        description: "Failed to load students",
+        description: "Failed to load students: " + error.message,
         variant: "destructive",
       });
     } finally {
@@ -78,6 +83,28 @@ const StudentManagement = () => {
     }
 
     try {
+      console.log('Adding new student:', newStudent);
+      
+      // Check if roll number already exists
+      const { data: existingStudent, error: checkError } = await supabase
+        .from('profiles')
+        .select('roll_number')
+        .eq('roll_number', newStudent.roll_number)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingStudent) {
+        toast({
+          title: "Error",
+          description: "A student with this roll number already exists",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .insert({
@@ -87,8 +114,12 @@ const StudentManagement = () => {
           phone_number: newStudent.phone_number
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding student:', error);
+        throw error;
+      }
 
+      console.log('Student added successfully');
       toast({
         title: "Success",
         description: "Student added successfully",
@@ -103,9 +134,10 @@ const StudentManagement = () => {
       setIsAddDialogOpen(false);
       loadStudents();
     } catch (error: any) {
+      console.error('Error adding student:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to add student: " + error.message,
         variant: "destructive",
       });
     }
@@ -113,17 +145,24 @@ const StudentManagement = () => {
 
   const updateStudent = async (student: Student) => {
     try {
+      console.log('Updating student:', student.id);
+      
       const { error } = await supabase
         .from('profiles')
         .update({
           name: student.name,
           email: student.email,
-          phone_number: student.phone_number
+          phone_number: student.phone_number,
+          updated_at: new Date().toISOString()
         })
         .eq('id', student.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating student:', error);
+        throw error;
+      }
 
+      console.log('Student updated successfully');
       toast({
         title: "Success",
         description: "Student updated successfully",
@@ -132,9 +171,10 @@ const StudentManagement = () => {
       setEditingStudent(null);
       loadStudents();
     } catch (error: any) {
+      console.error('Error updating student:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to update student: " + error.message,
         variant: "destructive",
       });
     }
@@ -146,11 +186,18 @@ const StudentManagement = () => {
     }
 
     try {
+      console.log('Deleting student:', studentId);
+      
       // First delete submissions
-      await supabase
+      const { error: submissionsError } = await supabase
         .from('submissions')
         .delete()
         .eq('student_id', studentId);
+
+      if (submissionsError) {
+        console.error('Error deleting submissions:', submissionsError);
+        // Continue with profile deletion even if submission deletion fails
+      }
 
       // Then delete profile
       const { error } = await supabase
@@ -158,8 +205,12 @@ const StudentManagement = () => {
         .delete()
         .eq('id', studentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting student:', error);
+        throw error;
+      }
 
+      console.log('Student deleted successfully');
       toast({
         title: "Success",
         description: "Student deleted successfully",
@@ -167,9 +218,10 @@ const StudentManagement = () => {
 
       loadStudents();
     } catch (error: any) {
+      console.error('Error deleting student:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to delete student: " + error.message,
         variant: "destructive",
       });
     }

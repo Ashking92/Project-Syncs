@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Edit, Home, Folder, Settings, LogOut, Menu, Bell, CheckCircle, Clock, XCircle, Lightbulb, Download } from "lucide-react";
@@ -52,6 +53,29 @@ const StudentDashboard = () => {
     email: "",
     photo_url: ""
   });
+
+  // Helper functions for status icons and badges
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'rejected':
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      default:
+        return <Clock className="h-5 w-5 text-yellow-600" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+      default:
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+    }
+  };
 
   // Check if app is running as PWA and setup push notifications
   useEffect(() => {
