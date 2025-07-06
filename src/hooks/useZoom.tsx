@@ -73,11 +73,14 @@ export const useZoom = () => {
     document.addEventListener('gestureend', handleGestureEnd, options);
 
     // Prevent zoom with CSS and meta viewport settings
-    document.body.style.touchAction = 'pan-x pan-y';
-    document.body.style.userSelect = 'none';
-    document.body.style.webkitUserSelect = 'none';
-    document.body.style.webkitTouchCallout = 'none';
-    document.documentElement.style.touchAction = 'pan-x pan-y';
+    const bodyStyle = document.body.style as any;
+    const htmlStyle = document.documentElement.style as any;
+    
+    bodyStyle.touchAction = 'pan-x pan-y';
+    bodyStyle.userSelect = 'none';
+    bodyStyle.webkitUserSelect = 'none';
+    bodyStyle.webkitTouchCallout = 'none';
+    htmlStyle.touchAction = 'pan-x pan-y';
     
     // Prevent double-tap zoom
     let lastTouchEnd = 0;
@@ -103,11 +106,14 @@ export const useZoom = () => {
       document.removeEventListener('touchend', preventDoubleTapZoom);
       
       // Reset styles
-      document.body.style.touchAction = '';
-      document.body.style.userSelect = '';
-      document.body.style.webkitUserSelect = '';
-      document.body.style.webkitTouchCallout = '';
-      document.documentElement.style.touchAction = '';
+      const bodyStyle = document.body.style as any;
+      const htmlStyle = document.documentElement.style as any;
+      
+      bodyStyle.touchAction = '';
+      bodyStyle.userSelect = '';
+      bodyStyle.webkitUserSelect = '';
+      bodyStyle.webkitTouchCallout = '';
+      htmlStyle.touchAction = '';
     };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd, handleWheel, handleKeyDown, handleGestureStart, handleGestureChange, handleGestureEnd]);
 
