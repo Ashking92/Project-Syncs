@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Eye, CheckCircle, XCircle, LogOut, Users } from "lucide-react";
+import { Search, Plus, Eye, CheckCircle, XCircle, LogOut, Users, Home, Settings, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -58,7 +59,7 @@ const Admin = () => {
   const [csStudents, setCsStudents] = useState(0);
   const [itStudents, setItStudents] = useState(0);
   const [students, setStudents] = useState<Student[]>([]);
-  const [activeTab, setActiveTab] = useState('submissions');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
   const [targetType, setTargetType] = useState<'all' | 'individual'>('all');
@@ -252,11 +253,6 @@ const Admin = () => {
       console.log('Processed submissions:', typedData.length, 'items');
       setSubmissions(typedData);
       
-      toast({
-        title: "Success",
-        description: `Loaded ${typedData.length} submissions successfully`,
-      });
-      
     } catch (error) {
       console.error('Detailed error loading submissions:', error);
       toast({
@@ -381,11 +377,11 @@ const Admin = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Approved</Badge>;
       case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border-red-200">Rejected</Badge>;
       default:
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Ongoing</Badge>;
     }
   };
 
@@ -466,23 +462,28 @@ const Admin = () => {
   const getConnectionStatusText = () => {
     switch (connectionStatus) {
       case 'connected':
-        return 'Database Connected';
+        return 'Connected';
       case 'error':
         return 'Connection Error';
       default:
-        return 'Checking Connection...';
+        return 'Connecting...';
     }
+  };
+
+  const getOngoingProjects = () => {
+    return submissions.filter(s => s.status === 'pending');
+  };
+
+  const getCompletedProjects = () => {
+    return submissions.filter(s => s.status === 'approved');
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading admin dashboard...</p>
-          <p className={`text-sm mt-2 ${getConnectionStatusColor()}`}>
-            {getConnectionStatusText()}
-          </p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-gray-600 mt-4 text-lg">Loading Dashboard...</p>
         </div>
       </div>
     );
@@ -491,256 +492,261 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-white">
-        <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>
-        <div className="flex items-center space-x-4">
-          <div className={`text-sm ${getConnectionStatusColor()}`}>
-            {getConnectionStatusText()}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <Button
+              onClick={() => setActiveTab('dashboard')}
+              variant="ghost"
+              size="sm"
+              className="text-gray-600"
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
           </div>
-          <button onClick={handleLogout}>
-            <LogOut className="h-6 w-6 text-gray-700" />
-          </button>
+          <div className="flex items-center space-x-4">
+            <div className={`text-sm ${getConnectionStatusColor()}`}>
+              {getConnectionStatusText()}
+            </div>
+            <Button onClick={handleLogout} variant="ghost" size="sm">
+              <LogOut className="h-5 w-5 text-gray-600" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Student Registration Stats */}
-      <div className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="rounded-xl border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center">
-                <Users className="h-5 w-5 mr-2 text-blue-600" />
-                Total Students
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-600">{studentCount}</div>
-              <p className="text-sm text-gray-600">Registered Students</p>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center">
-                <Users className="h-5 w-5 mr-2 text-green-600" />
-                CS Department
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">{csStudents}</div>
-              <p className="text-sm text-gray-600">D234101 - D234160</p>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl border-gray-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center">
-                <Users className="h-5 w-5 mr-2 text-purple-600" />
-                IT Department
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-600">{itStudents}</div>
-              <p className="text-sm text-gray-600">D235101 - D235130</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex space-x-2 mb-6">
-          {['submissions', 'students', 'student-management', 'notices'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
-                activeTab === tab
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-200 text-gray-700'
-              }`}
-            >
-              {tab.replace('-', ' ')}
-            </button>
-          ))}
-        </div>
-
-        {/* Submissions Tab */}
-        {activeTab === 'submissions' && (
+      <div className="p-6">
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
           <>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Project Submissions ({submissions.length})</h2>
-              <Button
-                onClick={loadSubmissions}
-                disabled={submissionsLoading}
-                variant="outline"
-                className="rounded-xl"
-              >
-                {submissionsLoading ? 'Refreshing...' : 'Refresh Data'}
-              </Button>
-            </div>
-
-            {/* Search */}
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <Input
-                placeholder="Search submissions"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-12 rounded-xl border-gray-200 bg-gray-100"
-              />
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex space-x-2 mb-6">
-              {['All', 'Pending', 'Approved', 'Rejected'].map((filterOption) => (
-                <button
-                  key={filterOption}
-                  onClick={() => setFilter(filterOption)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium ${
-                    filter === filterOption
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  {filterOption} ({filterOption === 'All' ? submissions.length : submissions.filter(s => s.status.toLowerCase() === filterOption.toLowerCase()).length})
-                </button>
-              ))}
-            </div>
-
-            {/* Submissions List */}
-            <div className="space-y-4">
-              {submissionsLoading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading submissions...</p>
-                </div>
-              ) : filteredSubmissions.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">No submissions found</p>
-                </div>
-              ) : (
-                filteredSubmissions.map((submission) => (
-                  <div key={submission.id} className="bg-white rounded-xl p-4 border border-gray-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 mb-1">
-                          {submission.project_title}
-                        </h3>
-                        <p className="text-gray-600 text-sm mb-1">
-                          {submission.student_name} ({submission.roll_number})
-                        </p>
-                        <p className="text-gray-500 text-xs">
-                          Team: {submission.team_members_count} members | Cost: ₹{submission.estimated_cost}
-                        </p>
-                      </div>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedSubmission(submission)}
-                            className="rounded-full"
-                          >
-                            Review
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-white/95 backdrop-blur-sm border-2 border-gray-200 shadow-2xl">
-                          <DialogHeader className="border-b border-gray-200 pb-4">
-                            <DialogTitle className="text-xl font-bold text-gray-900">Project Details</DialogTitle>
-                          </DialogHeader>
-                          {selectedSubmission && (
-                            <div className="space-y-6 pt-4">
-                              <div className="bg-gray-50 rounded-lg p-4 grid md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <span className="text-sm font-medium text-gray-500">Roll Number</span>
-                                  <p className="text-gray-900 font-semibold">{selectedSubmission.roll_number}</p>
-                                </div>
-                                <div className="space-y-2">
-                                  <span className="text-sm font-medium text-gray-500">Student Name</span>
-                                  <p className="text-gray-900 font-semibold">{selectedSubmission.student_name}</p>
-                                </div>
-                                <div className="space-y-2">
-                                  <span className="text-sm font-medium text-gray-500">Team Members</span>
-                                  <p className="text-gray-900 font-semibold">{selectedSubmission.team_members_count}</p>
-                                </div>
-                                <div className="space-y-2">
-                                  <span className="text-sm font-medium text-gray-500">Estimated Cost</span>
-                                  <p className="text-gray-900 font-semibold">₹{selectedSubmission.estimated_cost}</p>
-                                </div>
-                              </div>
-                              
-                              <div className="bg-blue-50 rounded-lg p-4">
-                                <span className="text-sm font-medium text-blue-700">Project Title</span>
-                                <p className="text-blue-900 font-bold text-lg mt-1">{selectedSubmission.project_title}</p>
-                              </div>
-                              
-                              {selectedSubmission.project_description && (
-                                <div className="bg-green-50 rounded-lg p-4">
-                                  <span className="text-sm font-medium text-green-700">Description</span>
-                                  <p className="mt-2 text-green-900 leading-relaxed">{selectedSubmission.project_description}</p>
-                                </div>
-                              )}
-                              
-                              <div className="bg-purple-50 rounded-lg p-4">
-                                <span className="text-sm font-medium text-purple-700">Technologies</span>
-                                <p className="mt-2 text-purple-900 font-medium">{selectedSubmission.technologies}</p>
-                              </div>
-                              
-                              <div className="bg-orange-50 rounded-lg p-4">
-                                <span className="text-sm font-medium text-orange-700">Team Members</span>
-                                <p className="mt-2 text-orange-900 leading-relaxed">{selectedSubmission.team_members}</p>
-                              </div>
-                              
-                              {selectedSubmission.software_requirements && (
-                                <div className="bg-indigo-50 rounded-lg p-4">
-                                  <span className="text-sm font-medium text-indigo-700">Software Requirements</span>
-                                  <p className="mt-2 text-indigo-900 leading-relaxed">{selectedSubmission.software_requirements}</p>
-                                </div>
-                              )}
-                              
-                              {selectedSubmission.hardware_requirements && (
-                                <div className="bg-red-50 rounded-lg p-4">
-                                  <span className="text-sm font-medium text-red-700">Hardware Requirements</span>
-                                  <p className="mt-2 text-red-900 leading-relaxed">{selectedSubmission.hardware_requirements}</p>
-                                </div>
-                              )}
-                              
-                              <div className="bg-gray-100 rounded-lg p-4">
-                                <span className="text-sm font-medium text-gray-600">Submission Date</span>
-                                <p className="text-gray-900 font-medium mt-1">{new Date(selectedSubmission.submitted_at).toLocaleString()}</p>
-                              </div>
-                              
-                              <div className="flex space-x-3 pt-6 border-t border-gray-200">
-                                <Button
-                                  onClick={() => updateSubmissionStatus(selectedSubmission.id, 'approved')}
-                                  className="flex-1 bg-green-600 hover:bg-green-700 text-white h-12 rounded-lg font-medium"
-                                  disabled={selectedSubmission.status === 'approved'}
-                                >
-                                  <CheckCircle className="h-5 w-5 mr-2" />
-                                  Approve Project
-                                </Button>
-                                <Button
-                                  onClick={() => updateSubmissionStatus(selectedSubmission.id, 'rejected')}
-                                  className="flex-1 bg-red-600 hover:bg-red-700 text-white h-12 rounded-lg font-medium"
-                                  disabled={selectedSubmission.status === 'rejected'}
-                                >
-                                  <XCircle className="h-5 w-5 mr-2" />
-                                  Reject Project
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      {getStatusBadge(submission.status)}
-                      <span className="text-xs text-gray-500">
-                        {new Date(submission.submitted_at).toLocaleDateString()}
-                      </span>
-                    </div>
+            {/* Stats Cards */}
+            <div className="mb-8">
+              {/* Total Students Card */}
+              <Card className="bg-gray-100 border-0 mb-6">
+                <CardContent className="p-6">
+                  <div className="text-left">
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">Total Students</h3>
+                    <div className="text-4xl font-bold text-gray-900">{studentCount}</div>
                   </div>
-                ))
-              )}
+                </CardContent>
+              </Card>
+
+              {/* Department Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="border border-gray-200 bg-white">
+                  <CardContent className="p-6">
+                    <div className="text-left">
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">IT Students</h3>
+                      <div className="text-4xl font-bold text-gray-900">{itStudents}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-gray-200 bg-white">
+                  <CardContent className="p-6">
+                    <div className="text-left">
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">CS Students</h3>
+                      <div className="text-4xl font-bold text-gray-900">{csStudents}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Student Projects Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Student Projects</h2>
+              
+              {/* Ongoing Projects */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-blue-600">Ongoing</h3>
+                </div>
+                <div className="space-y-4">
+                  {getOngoingProjects().slice(0, 3).map((project) => (
+                    <Card key={project.id} className="border border-gray-200 bg-white">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 mb-1">{project.project_title}</h4>
+                            <p className="text-blue-600 text-sm mb-2">{project.roll_number.startsWith('D234') ? 'CS Department' : 'IT Department'}</p>
+                            <div className="flex items-center space-x-4">
+                              {getStatusBadge(project.status)}
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSelectedSubmission(project)}
+                                    className="text-gray-600 border-gray-300"
+                                  >
+                                    View
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                                  <DialogHeader>
+                                    <DialogTitle>Project Details</DialogTitle>
+                                  </DialogHeader>
+                                  {selectedSubmission && (
+                                    <div className="space-y-4">
+                                      <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                          <strong>Student:</strong> {selectedSubmission.student_name}
+                                        </div>
+                                        <div>
+                                          <strong>Roll Number:</strong> {selectedSubmission.roll_number}
+                                        </div>
+                                        <div>
+                                          <strong>Team Size:</strong> {selectedSubmission.team_members_count}
+                                        </div>
+                                        <div>
+                                          <strong>Budget:</strong> ₹{selectedSubmission.estimated_cost}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <strong>Project Title:</strong> {selectedSubmission.project_title}
+                                      </div>
+                                      {selectedSubmission.project_description && (
+                                        <div>
+                                          <strong>Description:</strong> {selectedSubmission.project_description}
+                                        </div>
+                                      )}
+                                      <div>
+                                        <strong>Technologies:</strong> {selectedSubmission.technologies}
+                                      </div>
+                                      <div>
+                                        <strong>Team Members:</strong> {selectedSubmission.team_members}
+                                      </div>
+                                      {selectedSubmission.software_requirements && (
+                                        <div>
+                                          <strong>Software Requirements:</strong> {selectedSubmission.software_requirements}
+                                        </div>
+                                      )}
+                                      {selectedSubmission.hardware_requirements && (
+                                        <div>
+                                          <strong>Hardware Requirements:</strong> {selectedSubmission.hardware_requirements}
+                                        </div>
+                                      )}
+                                      <div className="flex space-x-2 pt-4">
+                                        <Button
+                                          onClick={() => updateSubmissionStatus(selectedSubmission.id, 'approved')}
+                                          className="bg-green-600 hover:bg-green-700 text-white"
+                                          disabled={selectedSubmission.status === 'approved'}
+                                        >
+                                          <CheckCircle className="h-4 w-4 mr-2" />
+                                          Approve
+                                        </Button>
+                                        <Button
+                                          onClick={() => updateSubmissionStatus(selectedSubmission.id, 'rejected')}
+                                          className="bg-red-600 hover:bg-red-700 text-white"
+                                          disabled={selectedSubmission.status === 'rejected'}
+                                        >
+                                          <XCircle className="h-4 w-4 mr-2" />
+                                          Reject
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          </div>
+                          <div className="w-16 h-16 bg-gradient-to-br from-orange-200 to-orange-300 rounded-lg flex items-center justify-center">
+                            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full"></div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Completed Projects */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-blue-600">Completed</h3>
+                </div>
+                <div className="space-y-4">
+                  {getCompletedProjects().slice(0, 3).map((project) => (
+                    <Card key={project.id} className="border border-gray-200 bg-white">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 mb-1">{project.project_title}</h4>
+                            <p className="text-blue-600 text-sm mb-2">{project.roll_number.startsWith('D234') ? 'CS Department' : 'IT Department'}</p>
+                            <div className="flex items-center space-x-4">
+                              {getStatusBadge(project.status)}
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSelectedSubmission(project)}
+                                    className="text-gray-600 border-gray-300"
+                                  >
+                                    View
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                                  <DialogHeader>
+                                    <DialogTitle>Project Details</DialogTitle>
+                                  </DialogHeader>
+                                  {selectedSubmission && (
+                                    <div className="space-y-4">
+                                      <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                          <strong>Student:</strong> {selectedSubmission.student_name}
+                                        </div>
+                                        <div>
+                                          <strong>Roll Number:</strong> {selectedSubmission.roll_number}
+                                        </div>
+                                        <div>
+                                          <strong>Team Size:</strong> {selectedSubmission.team_members_count}
+                                        </div>
+                                        <div>
+                                          <strong>Budget:</strong> ₹{selectedSubmission.estimated_cost}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <strong>Project Title:</strong> {selectedSubmission.project_title}
+                                      </div>
+                                      {selectedSubmission.project_description && (
+                                        <div>
+                                          <strong>Description:</strong> {selectedSubmission.project_description}
+                                        </div>
+                                      )}
+                                      <div>
+                                        <strong>Technologies:</strong> {selectedSubmission.technologies}
+                                      </div>
+                                      <div>
+                                        <strong>Team Members:</strong> {selectedSubmission.team_members}
+                                      </div>
+                                      {selectedSubmission.software_requirements && (
+                                        <div>
+                                          <strong>Software Requirements:</strong> {selectedSubmission.software_requirements}
+                                        </div>
+                                      )}
+                                      {selectedSubmission.hardware_requirements && (
+                                        <div>
+                                          <strong>Hardware Requirements:</strong> {selectedSubmission.hardware_requirements}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          </div>
+                          <div className="w-16 h-16 bg-gradient-to-br from-blue-200 to-blue-300 rounded-lg flex items-center justify-center">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full"></div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             </div>
           </>
         )}
@@ -748,8 +754,8 @@ const Admin = () => {
         {/* Students Tab */}
         {activeTab === 'students' && (
           <>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Registered Students ({students.length})</h2>
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Students ({students.length})</h2>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -776,15 +782,196 @@ const Admin = () => {
           </>
         )}
 
-        {/* Student Management Tab */}
-        {activeTab === 'student-management' && <StudentManagement />}
-
-        {/* Notices Tab */}
-        {activeTab === 'notices' && (
+        {/* Projects Tab */}
+        {activeTab === 'projects' && (
           <>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Send Notice</h2>
-            <div className="bg-white rounded-xl p-6 border border-gray-200 max-w-2xl">
-              <div className="space-y-4">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">All Projects ({submissions.length})</h2>
+              <Button
+                onClick={loadSubmissions}
+                disabled={submissionsLoading}
+                variant="outline"
+              >
+                {submissionsLoading ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </div>
+
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                placeholder="Search projects..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 border-gray-300"
+              />
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex space-x-2 mb-6">
+              {['All', 'Pending', 'Approved', 'Rejected'].map((filterOption) => (
+                <button
+                  key={filterOption}
+                  onClick={() => setFilter(filterOption)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filter === filterOption
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {filterOption} ({filterOption === 'All' ? submissions.length : submissions.filter(s => s.status.toLowerCase() === filterOption.toLowerCase()).length})
+                </button>
+              ))}
+            </div>
+
+            {/* Projects List */}
+            <div className="space-y-4">
+              {submissionsLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading projects...</p>
+                </div>
+              ) : filteredSubmissions.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">No projects found</p>
+                </div>
+              ) : (
+                filteredSubmissions.map((submission) => (
+                  <Card key={submission.id} className="border border-gray-200 bg-white">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 text-lg mb-2">
+                            {submission.project_title}
+                          </h3>
+                          <p className="text-gray-600 mb-1">
+                            {submission.student_name} ({submission.roll_number})
+                          </p>
+                          <p className="text-gray-500 text-sm">
+                            Team: {submission.team_members_count} members | Budget: ₹{submission.estimated_cost}
+                          </p>
+                        </div>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              onClick={() => setSelectedSubmission(submission)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Review
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Project Review</DialogTitle>
+                            </DialogHeader>
+                            {selectedSubmission && (
+                              <div className="space-y-6">
+                                <div className="grid md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                                  <div>
+                                    <span className="text-sm font-medium text-gray-500">Student</span>
+                                    <p className="font-semibold">{selectedSubmission.student_name}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-gray-500">Roll Number</span>
+                                    <p className="font-semibold">{selectedSubmission.roll_number}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-gray-500">Team Size</span>
+                                    <p className="font-semibold">{selectedSubmission.team_members_count}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-gray-500">Budget</span>
+                                    <p className="font-semibold">₹{selectedSubmission.estimated_cost}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                  <div>
+                                    <h4 className="font-semibold text-gray-900 mb-2">Project Title</h4>
+                                    <p className="text-gray-700">{selectedSubmission.project_title}</p>
+                                  </div>
+                                  
+                                  {selectedSubmission.project_description && (
+                                    <div>
+                                      <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
+                                      <p className="text-gray-700 leading-relaxed">{selectedSubmission.project_description}</p>
+                                    </div>
+                                  )}
+                                  
+                                  <div>
+                                    <h4 className="font-semibold text-gray-900 mb-2">Technologies</h4>
+                                    <p className="text-gray-700">{selectedSubmission.technologies}</p>
+                                  </div>
+                                  
+                                  <div>
+                                    <h4 className="font-semibold text-gray-900 mb-2">Team Members</h4>
+                                    <p className="text-gray-700">{selectedSubmission.team_members}</p>
+                                  </div>
+                                  
+                                  {selectedSubmission.software_requirements && (
+                                    <div>
+                                      <h4 className="font-semibold text-gray-900 mb-2">Software Requirements</h4>
+                                      <p className="text-gray-700">{selectedSubmission.software_requirements}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {selectedSubmission.hardware_requirements && (
+                                    <div>
+                                      <h4 className="font-semibold text-gray-900 mb-2">Hardware Requirements</h4>
+                                      <p className="text-gray-700">{selectedSubmission.hardware_requirements}</p>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="flex space-x-3 pt-6 border-t">
+                                  <Button
+                                    onClick={() => updateSubmissionStatus(selectedSubmission.id, 'approved')}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                    disabled={selectedSubmission.status === 'approved'}
+                                  >
+                                    <CheckCircle className="h-5 w-5 mr-2" />
+                                    Approve Project
+                                  </Button>
+                                  <Button
+                                    onClick={() => updateSubmissionStatus(selectedSubmission.id, 'rejected')}
+                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                    disabled={selectedSubmission.status === 'rejected'}
+                                  >
+                                    <XCircle className="h-5 w-5 mr-2" />
+                                    Reject Project
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        {getStatusBadge(submission.status)}
+                        <span className="text-xs text-gray-500">
+                          {new Date(submission.submitted_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Settings</h2>
+            
+            {/* Notice Section */}
+            <Card className="max-w-2xl">
+              <CardHeader>
+                <CardTitle>Send Notice</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Notice Title
@@ -793,7 +980,6 @@ const Admin = () => {
                     value={noticeTitle}
                     onChange={(e) => setNoticeTitle(e.target.value)}
                     placeholder="Enter notice title"
-                    className="w-full"
                   />
                 </div>
 
@@ -806,7 +992,6 @@ const Admin = () => {
                     onChange={(e) => setNoticeMessage(e.target.value)}
                     placeholder="Enter notice message"
                     rows={4}
-                    className="w-full"
                   />
                 </div>
 
@@ -844,30 +1029,75 @@ const Admin = () => {
                       value={targetRollNumber}
                       onChange={(e) => setTargetRollNumber(e.target.value)}
                       placeholder="Enter roll number (e.g., D234101)"
-                      className="w-full"
                     />
                   )}
                 </div>
 
                 <Button
                   onClick={sendNotice}
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={!noticeTitle.trim() || !noticeMessage.trim()}
                 >
                   Send Notice
                 </Button>
-              </div>
+              </CardContent>
+            </Card>
+
+            {/* Student Management */}
+            <div className="mt-8">
+              <StudentManagement />
             </div>
           </>
         )}
-        
-        {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 py-6 px-4 text-center mt-8">
-          <p className="text-sm text-gray-500">
-            Developed by <span className="font-medium text-blue-600">Yash Pawar</span>
-          </p>
-        </footer>
       </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3">
+        <div className="flex justify-center space-x-8">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+              activeTab === 'dashboard' ? 'text-blue-600' : 'text-gray-500'
+            }`}
+          >
+            <Home className="h-6 w-6" />
+            <span className="text-xs font-medium">Dashboard</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('students')}
+            className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+              activeTab === 'students' ? 'text-blue-600' : 'text-gray-500'
+            }`}
+          >
+            <Users className="h-6 w-6" />
+            <span className="text-xs font-medium">Students</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('projects')}
+            className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+              activeTab === 'projects' ? 'text-blue-600' : 'text-gray-500'
+            }`}
+          >
+            <FolderOpen className="h-6 w-6" />
+            <span className="text-xs font-medium">Projects</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+              activeTab === 'settings' ? 'text-blue-600' : 'text-gray-500'
+            }`}
+          >
+            <Settings className="h-6 w-6" />
+            <span className="text-xs font-medium">Settings</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Footer spacing for bottom navigation */}
+      <div className="h-20"></div>
     </div>
   );
 };
