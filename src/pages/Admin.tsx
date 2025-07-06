@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Eye, CheckCircle, XCircle, LogOut, Users, Home, Settings, FolderOpen } from "lucide-react";
+import { Search, Plus, Eye, CheckCircle, XCircle, LogOut, Users, Home, Settings, FolderOpen, Edit, Trash2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +44,7 @@ interface Student {
   email: string;
   phone_number: string;
   created_at: string;
+  is_suspended?: boolean;
 }
 
 const Admin = () => {
@@ -59,12 +60,24 @@ const Admin = () => {
   const [csStudents, setCsStudents] = useState(0);
   const [itStudents, setItStudents] = useState(0);
   const [students, setStudents] = useState<Student[]>([]);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
   const [targetType, setTargetType] = useState<'all' | 'individual'>('all');
   const [targetRollNumber, setTargetRollNumber] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+
+  // Abuse words list
+  const abuseWords = [
+    'chutiya', 'madarchod', 'jhatu', 'jha', 'mc', 'bc', 'bhenchod',
+    'randi', 'harami', 'kamina', 'gandu', 'bhosdike', 'laude', 'teri ma'
+  ];
+
+  const checkForAbuseWords = (text: string) => {
+    const lowerText = text.toLowerCase();
+    return abuseWords.some(word => lowerText.includes(word));
+  };
 
   useEffect(() => {
     console.log('Admin component mounted, starting initialization...');
@@ -289,6 +302,111 @@ const Admin = () => {
       toast({
         title: "Error",
         description: "Failed to load student data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateStudent = async (student: Student) => {
+    console.log('Updating student:', student.id);
+    
+    // Check for abuse words in name, email, and phone
+    const textToCheck = `${student.name || ''} ${student.email || ''} ${student.phone_number || ''}`;
+    if (checkForAbuseWords(textToCheck)) {
+      // Suspend the student
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            name: student.name,
+            email: student.email,
+            phone_number: student.phone_number,
+            is_suspended: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', student.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Student Suspended",
+          description: "Student has been suspended due to inappropriate language and updated.",
+          variant: "destructive",
+        });
+      } catch (error: any) {
+        console.error('Error suspending student:', error);
+        toast({
+          title: "Error",
+          description: "Failed to suspend student: " + error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Normal update
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            name: student.name,
+            email: student.email,
+            phone_number: student.phone_number,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', student.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Student updated successfully",
+        });
+      } catch (error: any) {
+        console.error('Error updating student:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update student: " + error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setEditingStudent(null);
+    loadStudents();
+  };
+
+  const deleteStudent = async (studentId: string) => {
+    if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      console.log('Deleting student:', studentId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', studentId);
+
+      if (error) {
+        console.error('Error deleting student:', error);
+        throw error;
+      }
+
+      console.log('Student deleted successfully');
+      toast({
+        title: "Success",
+        description: "Student deleted successfully",
+      });
+
+      loadStudents();
+      loadStudentCounts();
+    } catch (error: any) {
+      console.error('Error deleting student:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete student: " + error.message,
         variant: "destructive",
       });
     }
@@ -763,17 +881,96 @@ const Admin = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Registered</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {students.map((student) => (
                     <TableRow key={student.id}>
                       <TableCell className="font-medium">{student.roll_number}</TableCell>
-                      <TableCell>{student.name || 'N/A'}</TableCell>
-                      <TableCell>{student.email || 'N/A'}</TableCell>
-                      <TableCell>{student.phone_number || 'N/A'}</TableCell>
+                      <TableCell>
+                        {editingStudent?.id === student.id ? (
+                          <Input
+                            value={editingStudent.name || ''}
+                            onChange={(e) => setEditingStudent(prev => prev ? { ...prev, name: e.target.value } : null)}
+                            className="h-8"
+                          />
+                        ) : (
+                          student.name || 'N/A'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingStudent?.id === student.id ? (
+                          <Input
+                            value={editingStudent.email || ''}
+                            onChange={(e) => setEditingStudent(prev => prev ? { ...prev, email: e.target.value } : null)}
+                            className="h-8"
+                          />
+                        ) : (
+                          student.email || 'N/A'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingStudent?.id === student.id ? (
+                          <Input
+                            value={editingStudent.phone_number || ''}
+                            onChange={(e) => setEditingStudent(prev => prev ? { ...prev, phone_number: e.target.value } : null)}
+                            className="h-8"
+                          />
+                        ) : (
+                          student.phone_number || 'N/A'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {student.is_suspended ? (
+                          <Badge className="bg-red-100 text-red-800 border-red-200">Suspended</Badge>
+                        ) : (
+                          <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>{new Date(student.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          {editingStudent?.id === student.id ? (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => updateStudent(editingStudent)}
+                                className="bg-green-500 hover:bg-green-600"
+                              >
+                                <Save className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingStudent(null)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingStudent(student)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteStudent(student.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
