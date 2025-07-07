@@ -325,8 +325,12 @@ const Admin = () => {
           })
           .eq('id', student.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error suspending student:', error);
+          throw error;
+        }
 
+        console.log('Student suspended successfully');
         toast({
           title: "Student Suspended",
           description: "Student has been suspended due to inappropriate language and updated.",
@@ -354,8 +358,12 @@ const Admin = () => {
           })
           .eq('id', student.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating student:', error);
+          throw error;
+        }
 
+        console.log('Student updated successfully');
         toast({
           title: "Success",
           description: "Student updated successfully",
@@ -372,40 +380,60 @@ const Admin = () => {
     }
 
     setEditingStudent(null);
-    loadStudents();
+    await loadStudents();
+    await loadStudentCounts();
   };
 
-  const deleteStudent = async (studentId: string) => {
-    if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+  const deleteStudent = async (studentId: string, rollNumber: string) => {
+    const confirmMessage = `Are you sure you want to delete student ${rollNumber}? This will permanently remove their account and all associated data. This action cannot be undone.`;
+    
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
     try {
-      console.log('Deleting student:', studentId);
+      console.log('Attempting to delete student:', studentId, 'Roll:', rollNumber);
       
-      const { error } = await supabase
+      // First delete related submissions
+      const { error: submissionsError } = await supabase
+        .from('submissions')
+        .delete()
+        .eq('student_id', studentId);
+
+      if (submissionsError) {
+        console.error('Error deleting student submissions:', submissionsError);
+        // Continue with student deletion even if submissions deletion fails
+      }
+
+      // Delete the student profile
+      const { error: profileError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', studentId);
 
-      if (error) {
-        console.error('Error deleting student:', error);
-        throw error;
+      if (profileError) {
+        console.error('Error deleting student profile:', profileError);
+        throw profileError;
       }
 
-      console.log('Student deleted successfully');
+      console.log('Student deleted successfully:', rollNumber);
       toast({
         title: "Success",
-        description: "Student deleted successfully",
+        description: `Student ${rollNumber} has been deleted successfully`,
       });
 
-      loadStudents();
-      loadStudentCounts();
+      // Refresh the data
+      await Promise.all([
+        loadStudents(),
+        loadStudentCounts(),
+        loadSubmissions()
+      ]);
+
     } catch (error: any) {
       console.error('Error deleting student:', error);
       toast({
         title: "Error",
-        description: "Failed to delete student: " + error.message,
+        description: `Failed to delete student: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -961,8 +989,8 @@ const Admin = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => deleteStudent(student.id)}
-                                className="text-red-600 hover:text-red-700"
+                                onClick={() => deleteStudent(student.id, student.roll_number)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
